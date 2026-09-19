@@ -1412,6 +1412,7 @@
 
       // 1. COMMONS SECTION (WITH CURRENT IMAGE DATA)
       const cData = buildCommonsData(item, currentModalImageIndex);
+      const uploadedInfo = window.isUploadedToCommons ? window.isUploadedToCommons(item) : null;
 
       if (!item.is2D) {
         modalPDStatusBadge.innerHTML = `
@@ -1473,6 +1474,33 @@
                 ${item.pdReason}. Твор створаны/апублікаваны раней за 1956 год, але пазней за 1928 год. У ЗША (серверы Вікімедыя) ён знаходзіцца ў грамадскім набытку, толькі калі аўтар памёр больш за 70 гадоў таму, альбо калі твор быў апублікаваны без захавання патрабаванняў капірайту. Калі вы маеце дадатковыя звесткі пра аўтара або гатовыя загрузіць на свой страх і рызыку, вы можаце сфарміраваць апісанне і назву ніжэй.
               </p>
             </div>
+
+            ${uploadedInfo ? `
+              <div class="p-3 bg-blue-100/90 border border-blue-300 rounded-xl flex items-center justify-between gap-3 text-xs text-blue-950 shadow-xs mb-2">
+                <div>
+                  <span class="font-bold flex items-center gap-1.5">
+                    <span>✅</span> Гэты экспанат ужо ёсць на Вікісховішчы!
+                  </span>
+                  <a href="${uploadedInfo.commonsUrl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(uploadedInfo.fileTitle))}" target="_blank" class="text-blue-800 font-semibold underline truncate block mt-0.5 max-w-sm">
+                    ${uploadedInfo.fileTitle} ↗
+                  </a>
+                </div>
+                <a href="${uploadedInfo.commonsUrl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(uploadedInfo.fileTitle))}" target="_blank" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold shadow-xs whitespace-nowrap">
+                  Адкрыць файл ↗
+                </a>
+              </div>
+            ` : ''}
+
+            <!-- КНОПКА 1-КЛІК НАЎПРОСТАВАЙ ЗАГРУЗКІ -->
+            <button
+              type="button"
+              id="modalDirectUploadBtn"
+              onclick="handleDirectUploadClick()"
+              class="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-700 hover:to-orange-800 text-white rounded-lg font-bold text-xs shadow-sm transition transform active:scale-95 mb-2"
+              title="Аўтаматычна запампаваць выяву і адправіць на Вікісховішча праз Bot Password (на свой страх і рызыку)"
+            >
+              <span>⚡ 1-Клік наўпроставая загрузка (на свой страх і рызыку)</span>
+            </button>
 
             <!-- Прапанаванае імя файла -->
             <div class="bg-white/90 rounded-lg p-2 border border-amber-200 text-xs">
