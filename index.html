@@ -991,7 +991,7 @@
       // Forbidden on Commons: brackets, pipe, hash, slash, colon, etc.
       function cleanForFilename(str) {
         let s = str || '';
-        const forbiddenChars = ['[', ']', ', ', '|', '#', '/', ':', '<', '>', '*', '?', String.fromCharCode(92)];
+        const forbiddenChars = ['[', ']', '{', '}', '|', '#', '/', ':', '<', '>', '*', '?', String.fromCharCode(92)];
         for (const ch of forbiddenChars) {
           s = s.replaceAll(ch, '');
         }
@@ -1068,7 +1068,11 @@
 [[Category:Cultural heritage of Belarus]]
 [[Category:State Catalogue of the Museum Fund of the Republic of Belarus]]
 `;
-      const uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}&wpUploadDescription=${encodeURIComponent(wikitext)}`;
+      let uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}`;
+      const encBDesc = encodeURIComponent(wikitext);
+      if (encBDesc.length < 7500) {
+        uploadUrl += `&wpUploadDescription=${encBDesc}`;
+      }
 
       return { suggestedFilename, wikitext, uploadUrl, currentImgUrl, totalImgs, imgIndex };
     }
@@ -1550,7 +1554,18 @@
       let isAiCached = false;
 
       if (cachedAi && cachedAi.wikitext && cachedAi.suggestedName) {
-        activeSuggestedFilename = cachedAi.suggestedName;
+        let fn = cachedAi.suggestedName;
+        // Auto-fix any previously cached entries that had merged words or missing commas/extensions:
+        fn = fn.replace(/([IVXLCDM]+)([A-Z][a-z]+)/g, '$1, $2');
+        fn = fn.replace(/([a-z])([A-Z][a-z]+ Museum)/g, '$1, $2');
+        fn = fn.replace(/([a-zA-Z])Hrodna/g, '$1, Hrodna');
+        fn = fn.replace(/([a-zA-Z])Museum/g, '$1 Museum');
+        fn = fn.replace(/,\s*,/g, ',');
+        fn = fn.replace(/\s+/g, ' ').trim();
+        if (!/\.(jpg|jpeg|png|tif|tiff)$/i.test(fn)) {
+          fn += '.jpg';
+        }
+        activeSuggestedFilename = fn;
         activeWikitext = cachedAi.wikitext;
         isAiCached = true;
       }
@@ -1672,9 +1687,12 @@
               <div class="bg-emerald-50 p-3 rounded-lg border border-emerald-200 space-y-1.5 text-emerald-950 text-xs">
                 <p class="font-semibold text-stone-900">Каб завяршыць, зрабіце 2 простыя крокі на старонцы Вікісховішча:</p>
                 <ol class="list-decimal list-inside space-y-1 pl-1 text-stone-700">
-                  <li>Націсніце кнопку <strong>«Выбраць файл»</strong> (выберыце спампаваны малюнак у папцы Downloads).</li>
-                  <li>Пракруціце ўніз і націсніце сінюю кнопку <strong>«Загрузіць файл»</strong> (апісанне ўжо запоўнена або ўстаўце яго праз <strong>Ctrl+V</strong>).</li>
+                  <li>Націсніце кнопку <strong>«Выбраць файл»</strong> (выберыце першы спампаваны малюнак у папцы «Загрузкі» / Downloads).</li>
+                  <li>Пракруціце старонку ўніз і націсніце сінюю кнопку <strong>«Загрузіць файл»</strong> (назва і поўнае апісанне ўжо аўтаматычна падстаўленыя).</li>
                 </ol>
+                <p class="text-[10px] text-stone-500 italic pt-0.5">
+                  💡 Радок назвы на Вікісховішчы можа выглядаць абрэзаным, бо само поле вузкае — поўная назва разам з .jpg знаходзіцца ўнутры.
+                </p>
               </div>
               <button 
                 type="button" 
@@ -2677,12 +2695,19 @@ LAST|P973|"${item.detailUrl}"`;
           suggestedName = suggestedName.replaceAll('Grodno', 'Hrodna').replaceAll('Grodna', 'Hrodna').replaceAll('grodno', 'hrodna');
           
           // Split joined words if title accidentally merged with museum or location
-          // e.g. "MaryHrodna" -> "Mary, Hrodna", "MuseumHrodna" -> "Museum, Hrodna"
+          // e.g. "Nicholas IIKlieck" -> "Nicholas II, Klieck", "MaryHrodna" -> "Mary, Hrodna"
+          suggestedName = suggestedName.replace(/([IVXLCDM]+)([A-Z][a-z]+)/g, '$1, $2');
+          suggestedName = suggestedName.replace(/([a-z])([A-Z][a-z]+ Museum)/g, '$1, $2');
           suggestedName = suggestedName.replace(/([a-zA-Z])Hrodna/g, '$1, Hrodna');
           suggestedName = suggestedName.replace(/([a-zA-Z])Museum/g, '$1 Museum');
           suggestedName = suggestedName.replace(/([a-zA-Z])\(/g, '$1 (');
           suggestedName = suggestedName.replace(/,\s*,/g, ',');
           suggestedName = suggestedName.replace(/\s+/g, ' ').trim();
+        }
+
+        // Ensure filename ends with proper extension
+        if (suggestedName && !/\.(jpg|jpeg|png|tif|tiff)$/i.test(suggestedName)) {
+          suggestedName += '.jpg';
         }
 
         if (totalImgs > 1 && suggestedName && !suggestedName.includes('(' + (currentModalImageIndex + 1) + ')')) {
@@ -2699,7 +2724,7 @@ LAST|P973|"${item.detailUrl}"`;
         }
 
         // Clean forbidden characters (keeping letters, numbers, spaces, commas, periods, hyphens, and parentheses)
-        const forbiddenChars = ['[', ']', ', ', '|', '#', '/', ':', '<', '>', '*', '?', String.fromCharCode(92)];
+        const forbiddenChars = ['[', ']', '{', '}', '|', '#', '/', ':', '<', '>', '*', '?', String.fromCharCode(92)];
         for (const ch of forbiddenChars) {
           suggestedName = suggestedName.replaceAll(ch, '');
         }
@@ -2713,7 +2738,7 @@ LAST|P973|"${item.detailUrl}"`;
         // Update UI with safe URL length
         let safeUploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedName)}`;
         const encDesc = encodeURIComponent(wikitext);
-        if (encDesc.length < 1500) {
+        if (encDesc.length < 7500) {
           safeUploadUrl += `&wpUploadDescription=${encDesc}`;
         }
 
@@ -3322,7 +3347,7 @@ LAST|P973|"${item.detailUrl}"`;
       updateBtnStatus('Адкрыццё формы на Вікісховішчы...');
       let uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}`;
       const encDesc = encodeURIComponent(wikitext);
-      if (encDesc.length < 1500) {
+      if (encDesc.length < 7500) {
         uploadUrl += `&wpUploadDescription=${encDesc}`;
       }
       window.open(uploadUrl, '_blank', 'noopener');
@@ -3385,7 +3410,7 @@ LAST|P973|"${item.detailUrl}"`;
     // Construct Commons Upload URL safely (wpDestFile is pre-filled)
     let uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}`;
     const encDesc = encodeURIComponent(wikitext);
-    if (encDesc.length < 1500) {
+    if (encDesc.length < 7500) {
       uploadUrl += `&wpUploadDescription=${encDesc}`;
     }
 
