@@ -989,7 +989,7 @@
 `;
       let uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}`;
       const encBDesc = encodeURIComponent(wikitext);
-      if (encBDesc.length < 32000) {
+      if (encBDesc.length < 5500) {
         uploadUrl += `&wpUploadDescription=${encBDesc}`;
       }
 
@@ -2670,7 +2670,7 @@ LAST|P973|"${item.detailUrl}"`;
         // Update UI with safe URL length
         let safeUploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedName)}`;
         const encDesc = encodeURIComponent(wikitext);
-        if (encDesc.length < 32000) {
+        if (encDesc.length < 5500) {
           safeUploadUrl += `&wpUploadDescription=${encDesc}`;
         }
 
@@ -3283,7 +3283,7 @@ LAST|P973|"${item.detailUrl}"`;
       updateBtnStatus('Адкрыццё формы на Вікісховішчы...');
       let uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}`;
       const encDesc = encodeURIComponent(wikitext);
-      if (encDesc.length < 32000) {
+      if (encDesc.length < 5500) {
         uploadUrl += `&wpUploadDescription=${encDesc}`;
       }
       window.open(uploadUrl, '_blank', 'noopener');
@@ -3346,7 +3346,8 @@ LAST|P973|"${item.detailUrl}"`;
     // Construct Commons Upload URL safely (wpDestFile is pre-filled)
     let uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}`;
     const encDesc = encodeURIComponent(wikitext);
-    if (encDesc.length < 32000) {
+    const descFitsInUrl = encDesc.length < 5500;
+    if (descFitsInUrl) {
       uploadUrl += `&wpUploadDescription=${encDesc}`;
     }
 
@@ -3358,20 +3359,39 @@ LAST|P973|"${item.detailUrl}"`;
     }
 
     try {
-      // 1. Automatically copy complete 9-language wikitext to clipboard
+      // 1. Always copy wikitext to clipboard (even if short — as backup)
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(wikitext);
-          if (typeof window.showToast === 'function') {
-            window.showToast('📋 Поўнае 9-моўнае апісанне скапіявана ў буфер абмену!', '📋');
-          }
         }
       } catch (clipErr) {
         console.warn('Clipboard write error:', clipErr);
       }
 
-      // 2. Open Special:Upload directly in new tab (synchronous within user click, NO about:blank!)
+      // 2. Open Special:Upload directly in new tab
       window.open(uploadUrl, '_blank', 'noopener');
+
+      // 2b. If desc was NOT in URL, show Ctrl+V banner inside confirmBox
+      if (!descFitsInUrl) {
+        const confirmBox = document.getElementById('modalUploadConfirmBox');
+        if (confirmBox) {
+          const banner = confirmBox.querySelector('#ctrlv-banner');
+          if (!banner) {
+            const b = document.createElement('div');
+            b.id = 'ctrlv-banner';
+            b.className = 'p-3 bg-amber-100 border-2 border-amber-400 rounded-xl text-xs text-amber-950 space-y-1.5';
+            b.innerHTML = '<p style="font-weight:bold;font-size:0.8rem;color:#78350f;display:flex;gap:6px;align-items:center;margin-bottom:4px"><span>&#9888;</span> Апісанне занадта доўгае для аўтаматычнага запаўнення</p><p>На старонцы Вікісховішча: клікніце ў поле <strong>«Тлумачэнне»</strong>, выдаліце стандартны шаблон і націсніце <strong style="background:#FDE68A;padding:1px 6px;border-radius:4px;font-family:monospace">Ctrl + V</strong> — 9-моўнае апісанне ўжо ў вашым буферы абмену!</p>';
+            confirmBox.insertBefore(b, confirmBox.firstChild);
+          }
+        }
+        if (typeof window.showToast === 'function') {
+          window.showToast('📋 Апісанне скапіявана! На Вікісховішчы клікніце «Тлумачэнне» → Ctrl+V', '📋');
+        }
+      } else {
+        if (typeof window.showToast === 'function') {
+          window.showToast('📋 Апісанне і назва файла аўтаматычна падстаўленыя!', '✅');
+        }
+      }
 
       // 3. Download the high-res image file to user computer
       if (typeof window.downloadImageDirect === 'function') {
