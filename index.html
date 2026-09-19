@@ -989,7 +989,7 @@
 `;
       let uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}`;
       const encBDesc = encodeURIComponent(wikitext);
-      if (encBDesc.length < 7500) {
+      if (encBDesc.length < 32000) {
         uploadUrl += `&wpUploadDescription=${encBDesc}`;
       }
 
@@ -1625,6 +1625,13 @@
                   💡 Калі поле «Тлумачэнне» ўжо запоўнена — выдаліце яго змест і ўстаўце Ctrl+V. Радок назвы можа выглядаць абрэзаным — поўная назва ўнутры.
                 </p>
               </div>
+              <button
+                type="button"
+                onclick="(function(){ var ta=document.getElementById('modalWikitextPreview'); if(ta && navigator.clipboard){ navigator.clipboard.writeText(ta.value).then(function(){ window.showToast && window.showToast('📋 Апісанне скапіявана! Зараз Ctrl+V у поле «Тлумачэнне»', '📋'); }); } })()"
+                class="w-full py-2.5 px-4 bg-indigo-700 hover:bg-indigo-800 text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>📋</span> Скапіяваць апісанне яшчэ раз (Ctrl+V у «Тлумачэнне»)
+              </button>
               <button 
                 type="button" 
                 onclick="confirmModalUpload()"
@@ -1975,7 +1982,7 @@
       let filename = cData.suggestedFilename;
       const fnDisplay = document.getElementById('modalSuggestedFilenameDisplay');
       if (fnDisplay && fnDisplay.textContent.startsWith('📁 ')) {
-        filename = fnDisplay.textContent.substring(2).trim();
+        filename = fnDisplay.textContent.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{26FF}]\s*/u, '').replace(/^📁\s*/, '').trim();
       }
 
       const btn = document.getElementById('modalDownloadBtn');
@@ -2663,7 +2670,7 @@ LAST|P973|"${item.detailUrl}"`;
         // Update UI with safe URL length
         let safeUploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedName)}`;
         const encDesc = encodeURIComponent(wikitext);
-        if (encDesc.length < 7500) {
+        if (encDesc.length < 32000) {
           safeUploadUrl += `&wpUploadDescription=${encDesc}`;
         }
 
@@ -3276,7 +3283,7 @@ LAST|P973|"${item.detailUrl}"`;
       updateBtnStatus('Адкрыццё формы на Вікісховішчы...');
       let uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}`;
       const encDesc = encodeURIComponent(wikitext);
-      if (encDesc.length < 7500) {
+      if (encDesc.length < 32000) {
         uploadUrl += `&wpUploadDescription=${encDesc}`;
       }
       window.open(uploadUrl, '_blank', 'noopener');
@@ -3326,7 +3333,7 @@ LAST|P973|"${item.detailUrl}"`;
     const filenameDisplay = document.getElementById('modalSuggestedFilenameDisplay');
 
     let wikitext = wikitextArea ? wikitextArea.value : '';
-    let suggestedFilename = filenameDisplay ? filenameDisplay.textContent.replace(/^📁\s*/, '').trim() : '';
+    let suggestedFilename = filenameDisplay ? filenameDisplay.textContent.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{26FF}]\s*/u, '').replace(/^📁\s*/, '').trim() : '';
 
     if (!wikitext || !suggestedFilename) {
       const cData = typeof window.buildCommonsData === 'function' ? window.buildCommonsData(item, idx) : null;
@@ -3339,7 +3346,7 @@ LAST|P973|"${item.detailUrl}"`;
     // Construct Commons Upload URL safely (wpDestFile is pre-filled)
     let uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}`;
     const encDesc = encodeURIComponent(wikitext);
-    if (encDesc.length < 7500) {
+    if (encDesc.length < 32000) {
       uploadUrl += `&wpUploadDescription=${encDesc}`;
     }
 
