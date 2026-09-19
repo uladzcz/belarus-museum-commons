@@ -2939,7 +2939,7 @@ LAST|P973|"${item.detailUrl}"`;
       const csrfData = await csrfResp.json();
       const csrfToken = csrfData.query && csrfData.query.tokens && csrfData.query.tokens.csrftoken;
 
-      if (!csrfToken || csrfToken === '+\') {
+      if (!csrfToken || csrfToken.length < 5) {
         throw new Error('Не атрымалася сфарміраваць CSRF токен (магчыма, патрабуецца праверка сесіі або CORS).');
       }
 
