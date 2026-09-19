@@ -2032,7 +2032,7 @@ LAST|P973|"${item.detailUrl}"`;
         );
 
         return valid.map(m => {
-          const cleanName = m.name ? m.name.replace(/^models//, '') : '';
+          const cleanName = m.name ? m.name.replace(/^models\//, '') : '';
           return {
             id: cleanName,
             displayName: m.displayName || cleanName,
@@ -2206,7 +2206,7 @@ LAST|P973|"${item.detailUrl}"`;
         const candidateModels = [];
         const preferredModel = localStorage.getItem('gemini_model') || 'auto';
         if (preferredModel && preferredModel !== 'auto') {
-          candidateModels.push(preferredModel.replace(/^models//, ''));
+          candidateModels.push(preferredModel.replace(/^models\//, ''));
         }
 
         // Dynamic query to Google AI Studio ListModels
@@ -2239,7 +2239,7 @@ LAST|P973|"${item.detailUrl}"`;
         let successfulModel = '';
 
         for (let i = 0; i < candidateModels.length; i++) {
-          const modelId = candidateModels[i].replace(/^models//, '');
+          const modelId = candidateModels[i].replace(/^models\//, '');
           if (btn) {
             btn.innerHTML = `<span class="inline-block animate-spin mr-1">⏳</span> Gemini (${modelId}) апрацоўвае...`;
           }
