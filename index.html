@@ -96,11 +96,17 @@
           </svg>
         </div>
         <input 
-          type="text" 
+          type="search" 
           id="searchInput"
+          name="catalog_search"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          data-lpignore="true"
+          data-form-type="other"
           placeholder="Пошук (назва, матэрыял, музей, перыяд, апісанне альбо QID Вікіданых)..."
           class="w-full pl-11 pr-10 py-3.5 bg-white rounded-xl border border-stone-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-stone-800 text-sm sm:text-base placeholder-stone-400"
-          autofocus
         >
         <button id="clearSearch" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-stone-400 hover:text-stone-600">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,94 +231,6 @@
       <div id="paginationControlsBottom" class="flex items-center gap-1 flex-wrap"></div>
     </div>
   </main>
-
-  <!-- Мадальнае акно налад Wikimedia Commons API (Bot Password) -->
-  <div id="wikimediaModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-    <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col my-auto border border-stone-200">
-      <div class="px-5 py-3.5 border-b border-stone-200 flex items-center justify-between bg-gradient-to-r from-blue-900 via-indigo-900 to-stone-900 text-white">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">🏛️</span>
-          <h3 class="font-bold text-base sm:text-lg">Акаўнт Вікісховішча (Wikimedia Commons)</h3>
-        </div>
-        <button onclick="closeWikimediaSettings()" class="text-stone-300 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition">
-          ✕
-        </button>
-      </div>
-      <div class="p-5 space-y-4 text-xs text-stone-700">
-        <p class="leading-relaxed">
-          Падлучэнне пароля бота (<strong>Bot Password</strong>) дазваляе загружаць рэпрадукцыі экспанатаў на Вікісховішча ў <strong>1 клік</strong> наўпрост з інтэрфейсу каталога.
-        </p>
-
-        <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 text-blue-950 text-[11px] space-y-1.5">
-          <span class="font-bold block">📖 Як атрымаць Bot Password:</span>
-          <ol class="list-decimal list-inside space-y-1 text-blue-900">
-            <li>Увайдзіце ў свой акаўнт на Вікісховішчы.</li>
-            <li>Перайдзіце на старонку <a href="https://commons.wikimedia.org/wiki/Special:BotPasswords" target="_blank" class="text-blue-700 underline font-bold">Special:BotPasswords ↗</a>.</li>
-            <li>Стварыце новы пароль, пазначыўшы дазволы: <em>«Upload new files»</em> і <em>«Upload, replace, and move files»</em>.</li>
-            <li>Скапіюйце атрыманае імя (фармат: <code>ВашНік@НазваБота</code>) і згенераваны пароль.</li>
-          </ol>
-        </div>
-
-        <div class="bg-emerald-50 p-3 rounded-lg border border-emerald-200 text-emerald-950 text-[11px] space-y-1">
-          <span class="font-bold">🔒 Лакальнае захаванне і бяспека:</span>
-          <p>Пароль захоўваецца <strong>выключна лакальна</strong> ў сховішчы вашага браўзера (<code class="font-mono bg-white px-1 rounded border border-emerald-300">localStorage</code>) і перадаецца непасрэдна ў афіцыйны API Wikimedia Commons.</p>
-        </div>
-
-        <div>
-          <label class="block font-bold text-stone-800 uppercase tracking-wider text-[10px] mb-1">Імя карыстальніка альбо Bot Username:</label>
-          <input 
-            type="text" 
-            id="wikiUsernameInput" 
-            placeholder="напрыклад Uladzcz альбо Uladzcz@CatalogUploader" 
-            class="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          >
-        </div>
-
-        <div>
-          <label class="block font-bold text-stone-800 uppercase tracking-wider text-[10px] mb-1">Bot Password:</label>
-          <div class="relative">
-            <input 
-              type="password" 
-              id="wikiPasswordInput" 
-              placeholder="Устаўце згенераваны пароль бота..." 
-              class="w-full p-2.5 pr-10 bg-stone-50 border border-stone-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            >
-            <button type="button" onclick="toggleWikimediaPasswordVisibility()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs" title="Паказаць/схаваць">
-              👁️
-            </button>
-          </div>
-        </div>
-
-        <details class="text-[11px] text-stone-500 cursor-pointer pt-1">
-          <summary class="font-semibold text-stone-600 hover:text-stone-800">Дадатковыя налады (CORS Proxy / мост)</summary>
-          <div class="mt-2 p-2.5 bg-stone-50 rounded-lg border border-stone-200 space-y-1">
-            <label class="block text-[10px] font-bold text-stone-700">Карыстальніцкі CORS Proxy URL (неабавязкова):</label>
-            <input 
-              type="text" 
-              id="wikiProxyInput" 
-              placeholder="напрыклад https://my-cors-proxy.workers.dev/" 
-              class="w-full p-2 bg-white border border-stone-300 rounded text-xs font-mono"
-            >
-            <p class="text-[10px] text-stone-400">Калі пакінуць пустым, выкарыстоўваецца прамое злучэнне з fallback на Special:Upload.</p>
-          </div>
-        </details>
-
-        <div class="pt-2 flex items-center justify-between gap-2 border-t border-stone-200">
-          <button type="button" onclick="removeWikimediaCredentials()" class="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg font-medium transition text-xs">
-            Выдаліць дадзеныя
-          </button>
-          <div class="flex items-center gap-2">
-            <button type="button" onclick="closeWikimediaSettings()" class="px-3.5 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg font-medium transition text-xs">
-              Адмена
-            </button>
-            <button type="button" onclick="saveWikimediaCredentials(document.getElementById('wikiUsernameInput').value, document.getElementById('wikiPasswordInput').value, document.getElementById('wikiProxyInput').value)" class="px-4 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold transition text-xs shadow-sm">
-              Захаваць
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Мадальнае акно налад Google Gemini API -->
   <div id="geminiModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
@@ -749,6 +667,7 @@
       wikidataFilter: '',
       uploadFilter: ''
     };
+    window.state = state;
 
     let currentModalItem = null;
 
@@ -1225,6 +1144,7 @@
 
     // Render cards
     function render(resetPage = true) {
+      window.render = render;
       renderActivePills();
       const filtered = filterData();
       const links = getWikidataLinks();
@@ -1462,6 +1382,16 @@
         `);
       }
 
+            if (state.uploadFilter) {
+        const txt = state.uploadFilter === 'uploaded' ? '🔵 Ужо на Вікісховішчы' : '🟢 Толькі незагружаныя';
+        pills.push(`
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-900 border border-blue-300 shadow-xs">
+            ${txt}
+            <button onclick="setCommonsUploadFilter('')" class="text-blue-700 hover:text-blue-950 font-bold ml-1 cursor-pointer" title="Скінуць фільтр">✕</button>
+          </span>
+        `);
+      }
+
       if (pills.length > 0) {
         activeFiltersBar.classList.remove('hidden');
         activePillsContainer.innerHTML = pills.join('');
@@ -1685,13 +1615,14 @@
                 <span>🎉</span> Малюнак спампаваны, форма Вікісховішча адкрыта!
               </div>
               <div class="bg-emerald-50 p-3 rounded-lg border border-emerald-200 space-y-1.5 text-emerald-950 text-xs">
-                <p class="font-semibold text-stone-900">Каб завяршыць, зрабіце 2 простыя крокі на старонцы Вікісховішча:</p>
-                <ol class="list-decimal list-inside space-y-1 pl-1 text-stone-700">
-                  <li>Націсніце кнопку <strong>«Выбраць файл»</strong> (выберыце першы спампаваны малюнак у папцы «Загрузкі» / Downloads).</li>
-                  <li>Пракруціце старонку ўніз і націсніце сінюю кнопку <strong>«Загрузіць файл»</strong> (назва і поўнае апісанне ўжо аўтаматычна падстаўленыя).</li>
+                <p class="font-semibold text-stone-900">Каб завяршыць, зрабіце 3 простыя крокі на старонцы Вікісховішча:</p>
+                <ol class="list-decimal list-inside space-y-1.5 pl-1 text-stone-700">
+                  <li>Націсніце кнопку <strong>«Выбраць файл»</strong> — выберыце першы спампаваны малюнак у папцы «Загрузкі»&nbsp;/&nbsp;Downloads.</li>
+                  <li>Клікніце ў поле <strong>«Тлумачэнне»</strong> і націсніце <strong class="bg-stone-200 px-1 py-0.5 rounded font-mono">Ctrl&nbsp;+&nbsp;V</strong> — поўнае 9-моўнае апісанне ўжо ў вашым буферы абмену!</li>
+                  <li>Пракруціце старонку ўніз і націсніце сінюю кнопку <strong>«Загрузіць файл»</strong>.</li>
                 </ol>
                 <p class="text-[10px] text-stone-500 italic pt-0.5">
-                  💡 Радок назвы на Вікісховішчы можа выглядаць абрэзаным, бо само поле вузкае — поўная назва разам з .jpg знаходзіцца ўнутры.
+                  💡 Калі поле «Тлумачэнне» ўжо запоўнена — выдаліце яго змест і ўстаўце Ctrl+V. Радок назвы можа выглядаць абрэзаным — поўная назва ўнутры.
                 </p>
               </div>
               <button 
@@ -1703,16 +1634,10 @@
               </button>
             </div>
 
-            <!-- ДЭТАЛІ АПІСАННЯ І ШІ (АККАРДЭОН) -->
-            <details class="border-t border-stone-200 pt-2 text-xs">
-              <summary class="cursor-pointer font-bold text-stone-600 hover:text-stone-900 py-1.5 flex items-center justify-between select-none">
-                <span class="flex items-center gap-1.5">
-                  <span>📄</span> Паказаць тэкст апісання і налады ШІ
-                </span>
-                <span class="text-stone-400 font-normal text-[11px]">разгарнуць ▼</span>
-              </summary>
+            <!-- АПІСАННЕ І ШІ (заўсёды бачна) -->
+            <div class="border-t border-stone-200 pt-3 text-xs">
 
-              <div class="pt-3 space-y-3">
+              <div class="pt-0 space-y-3">
                 <!-- Блок Gemini AI -->
                 <div class="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-indigo-200 space-y-2">
                   <div class="flex items-center justify-between flex-wrap gap-2">
@@ -1797,7 +1722,7 @@
                   </a>
                 </div>
               </div>
-            </details>
+            </div>
 
           </div>
         `;
@@ -3074,10 +2999,14 @@ LAST|P973|"${item.detailUrl}"`;
   window.setCommonsUploadFilter = function(filterVal) {
     if (window.state) {
       window.state.uploadFilter = filterVal;
-      window.syncCommonsFilterButtons();
-      if (typeof window.render === 'function') {
-        window.render();
-      }
+    } else if (typeof state !== 'undefined') {
+      state.uploadFilter = filterVal;
+    }
+    window.syncCommonsFilterButtons();
+    if (typeof window.render === 'function') {
+      window.render(true);
+    } else if (typeof render === 'function') {
+      render(true);
     }
   };
 
@@ -3477,6 +3406,29 @@ LAST|P973|"${item.detailUrl}"`;
 
 })();
 
+
+    // =====================================================
+    // STARTUP: Auto-migrate old AI cache (fix merged words)
+    // =====================================================
+    (function migrateAiCache() {
+      try {
+        const raw = localStorage.getItem('dkmf_ai_cache');
+        if (!raw) return;
+        let fixed = raw;
+        // Fix merged city/museum names: MaryHrodna, NicholasIIKlieck, etc.
+        fixed = fixed.replaceAll('MaryHrodna', 'Mary, Hrodna');
+        fixed = fixed.replaceAll('IIKlieck', 'II, Klieck');
+        // General Roman numeral + capital word: IICity → II, City
+        fixed = fixed.replace(/([IVXLCDM]{2,})([A-Z][a-z]+)/g, '$1, $2');
+        // lowercase + Hrodna/Museum without separator
+        fixed = fixed.replace(/([a-zA-Z])Hrodna/g, '$1, Hrodna');
+        fixed = fixed.replace(/([a-z])(Museum)/g, '$1 $2');
+        if (fixed !== raw) {
+          localStorage.setItem('dkmf_ai_cache', fixed);
+          console.log('[cache-migration] Fixed merged words in dkmf_ai_cache');
+        }
+      } catch(e) {}
+    })();
 
     // Init
     initFilters();
