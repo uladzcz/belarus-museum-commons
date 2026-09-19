@@ -45,37 +45,41 @@
 </head>
 <body class="bg-stone-50 text-stone-900 min-h-screen font-sans antialiased flex flex-col">
 
-  <!-- Шапка сайта -->
+  <!-- Шапка сайта (чыстая і зразумелая без айці) -->
   <header class="bg-stone-900 text-stone-100 sticky top-0 z-30 shadow-md border-b border-stone-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-lg bg-amber-600 flex items-center justify-center font-bold text-white shadow-sm text-lg">
+        <div class="w-10 h-10 rounded-xl bg-amber-600 flex items-center justify-center font-bold text-white shadow-sm text-xl flex-shrink-0">
           🏛️
         </div>
         <div>
           <h1 class="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">
-            Музейны фонд Беларусі & Вікі-інтэграцыя
+            Музейны фонд Беларусі & Вікісховішча
           </h1>
-          <p class="text-xs text-stone-400">
-            Праверка 2D PD-Art • Раздельныя кнопкі загрузкі ў Вікісховішча • Сувязь з Вікіданымі
+          <p class="text-xs text-stone-300">
+            Каталог экспанатаў для вольнага выкарыстання і Вікіпедыі
           </p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2 flex-wrap text-xs">
-        <button onclick="openWikimediaSettings()" id="headerWikimediaBtn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 border border-stone-700 text-stone-200 transition shadow-sm text-xs font-semibold" title="Налады ўліковага запісу Вікісховішча (Bot Password)">
-          <span>🏛️</span> <span id="headerWikimediaStatus">Акаўнт Вікісховішча</span>
+      <div class="flex items-center gap-2.5 flex-wrap text-xs">
+        <button 
+          type="button"
+          onclick="openHelpModal()" 
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold transition shadow-sm cursor-pointer"
+          title="Як працуе загрузка экспанатаў на Вікісховішча"
+        >
+          <span>📖 Як карыстацца</span>
         </button>
-        <button onclick="openGeminiSettings()" id="headerGeminiBtn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-900 to-indigo-900 hover:from-purple-800 hover:to-indigo-800 border border-indigo-700 text-indigo-100 transition shadow-sm" title="Падлучыць акаўнт Google Gemini AI для аўтаматычнага 9-моўнага афармлення">
-          <span>✨</span> <span id="headerGeminiStatus">Падлучыць Gemini AI</span>
+        <button 
+          type="button"
+          onclick="openGeminiSettings()" 
+          id="headerGeminiBtn" 
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 border border-stone-700 text-stone-300 transition shadow-sm font-medium cursor-pointer" 
+          title="Налады ШІ для перакладу на 9 моў (неабавязкова)"
+        >
+          <span>✨</span> <span id="headerGeminiStatus">ШІ-пераклад (па жаданні)</span>
         </button>
-        <button onclick="exportWikidataLinks()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 border border-stone-700 text-stone-200 transition">
-          <span>💾 Экспарт сувязей Вікіданых</span>
-        </button>
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-stone-800 border border-stone-700 text-emerald-400">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          CDN hotlinking
-        </span>
       </div>
     </div>
   </header>
@@ -132,10 +136,10 @@
           <label class="block text-[11px] font-bold text-stone-600 uppercase tracking-wider mb-1">Вікісховішча (Commons)</label>
           <select id="commonsFilter" class="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs text-stone-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
             <option value="">Усе аб'екты</option>
-            <option value="pd2d">Толькі 2D Грамадскі набытак (PD-Art) 🟢</option>
-            <option value="uncertain2d">2D на свой страх і рызыку (да 1956 г.) ⚠️</option>
-            <option value="forbidden2d">2D Загрузка забароненая (&lt;71 года) ⛔</option>
-            <option value="obj3d">3D-аб'екты (патрабуюць ліцэнзіі) 📦</option>
+            <option value="pd2d">🟢 Можна загружаць (Грамадскі набытак)</option>
+            <option value="uncertain2d">🟡 Трэба праверыць (да 1956 г.)</option>
+            <option value="forbidden2d">⛔ Нельга загружаць (Ахоўваецца)</option>
+            <option value="obj3d">📦 3D-аб'екты (патрабуюць ліцэнзіі)</option>
           </select>
         </div>
 
@@ -323,8 +327,14 @@
         </button>
       </div>
       <div class="p-5 space-y-4 text-xs text-stone-700">
-        <p class="leading-relaxed">
-          Падлучэнне бясплатнага ключа <strong>Gemini API</strong> дазваляе ў 1 клік аўтаматычна фармаваць поўнае <strong>9-моўнае апісанне</strong> (be, en, fr, de, es, it, pl, lt, ru), перакладаць тапонімы беларускай лацінкай, прапаноўваць назву файла з годам паводле правіл Вікісховішча і вызначаць катэгорыі.
+        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-emerald-950 text-xs space-y-1">
+          <span class="font-bold flex items-center gap-1"><span>ℹ️</span> Гэтая налада неабавязковая!</span>
+          <p class="text-[11px] leading-relaxed">
+            Каталог <strong>цалкам працуе без ключа</strong>: усе экспанаты маюць гатовыя апісанні і назвы на беларускай мове. Вы можаце спампоўваць і загружаць файлы адразу!
+          </p>
+        </div>
+        <p class="leading-relaxed text-xs text-stone-600">
+          Ключ Gemini API патрэбны <em>толькі калі вы хочаце</em> пашыраны аўтаматычны пераклад на <strong>9 моў</strong> (en, fr, de, es, it, pl, lt, ru) праз штучны інтэлект.
         </p>
         <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-200 text-indigo-900 text-[11px] space-y-1">
           <span class="font-bold">🔒 Лакальнае захаванне і бяспека:</span>
@@ -384,6 +394,62 @@
   </div>
 
   <!-- Мадальнае акно прагляду прадмета -->
+  
+  <!-- Мадальнае акно «Як карыстацца» (проста і зразумела без айці) -->
+  <div id="helpModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col my-auto border border-stone-200">
+      <div class="px-5 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-900 text-white">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📖</span>
+          <h3 class="font-bold text-base sm:text-lg">Як карыстацца каталогам</h3>
+        </div>
+        <button type="button" onclick="closeHelpModal()" class="text-stone-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition text-lg cursor-pointer">
+          ✕
+        </button>
+      </div>
+      <div class="p-5 space-y-3.5 text-xs text-stone-700 leading-relaxed">
+        <p class="text-stone-800 font-medium">
+          Гэты каталог дапамагае лёгка знаходзіць беларускія музейныя каштоўнасці і дадаваць іх у Вікіпедыю і Вікісховішча ўсяго за 3 простыя крокі:
+        </p>
+
+        <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1">
+          <div class="font-bold text-emerald-950 flex items-center gap-1.5 text-sm">
+            <span>🟢</span> 1. Выбірайце свабодныя творы
+          </div>
+          <p class="text-emerald-900 text-[11px] leading-relaxed">
+            Экспанаты з зялёнай пазнакай <strong>«Можна загружаць»</strong> (старадаўнія карціны, малюнкі, гравюры, кнігі) створаны даўна і знаходзяцца ў грамадскім набытку. Іх можна свабодна выкарыстоўваць!
+          </p>
+        </div>
+
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-1">
+          <div class="font-bold text-amber-950 flex items-center gap-1.5 text-sm">
+            <span>🚀</span> 2. Адзін клік для загрузкі
+          </div>
+          <p class="text-amber-900 text-[11px] leading-relaxed">
+            Адкрыйце картку экспаната і націсніце вялікую кнопку <strong>«Спампаваць малюнак і перайсці да загрузкі»</strong>.
+            Малюнак аўтаматычна захаваецца ў папку «Загрузкі» (Downloads) пад правільным імем, а гатовае музейнае апісанне скапіюецца ў буфер абмену.
+          </p>
+        </div>
+
+        <div class="p-3 bg-blue-50 rounded-xl border border-blue-200 space-y-1">
+          <div class="font-bold text-blue-950 flex items-center gap-1.5 text-sm">
+            <span>✅</span> 3. Загрузіце на Вікісховішчы
+          </div>
+          <p class="text-blue-900 text-[11px] leading-relaxed">
+            У адкрытай укладцы Вікісховішча націсніце кнопку <strong>«Выбраць файл»</strong> (выберыце спампаваны малюнак у Downloads) і націсніце сінюю кнопку <strong>«Загрузіць файл»</strong> унізе.
+            Гатова! Твор захаваны ў сусветнай скарбніцы ведаў.
+          </p>
+        </div>
+
+        <div class="pt-2 text-center">
+          <button type="button" onclick="closeHelpModal()" class="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer">
+            Усё зразумела, дзякуй!
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="detailModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
     <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[94vh] overflow-hidden shadow-2xl flex flex-col my-auto border border-stone-200">
       
@@ -1186,26 +1252,26 @@
         let pdBadge = '';
         if (!item.is2D) {
           pdBadge = `
-            <span class="inline-flex items-center gap-1 bg-stone-900/80 text-stone-300 text-[10px] px-2 py-0.5 rounded backdrop-blur-sm" title="Трохмерны аб'ект (фатограф музея мае асобнае аўтарскае права)">
-              <span>📦</span> 3D-аб'ект
+            <span class="inline-flex items-center gap-1 bg-stone-900/80 text-stone-300 text-[10px] px-2 py-0.5 rounded backdrop-blur-sm font-medium" title="Трохмерны аб’ект (посуд, мэбля, зброя, скульптура)">
+              <span>📦</span> 3D-аб’ект
             </span>
           `;
         } else if (item.pdStatus === 'pd') {
           pdBadge = `
-            <span class="inline-flex items-center gap-1 bg-emerald-600/95 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm font-medium shadow-xs" title="Двухмерны твор у грамадскім набытку (PD-Art: да 1929 г. альбо гістарычны перыяд)">
-              <span>✅</span> PD-Art (Commons)
+            <span class="inline-flex items-center gap-1 bg-emerald-600/95 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm font-bold shadow-xs" title="Твор у грамадскім набытку — можна свабодна загружаць у Вікіпедыю і Вікісховішча!">
+              <span>🟢</span> Можна загружаць
             </span>
           `;
         } else if (item.pdStatus === 'uncertain') {
           pdBadge = `
-            <span class="inline-flex items-center gap-1 bg-amber-600/95 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm font-medium shadow-xs" title="Створана да 1956 г. альбо дата патрабуе ўдакладнення. Загрузка на свой страх і рызыку">
-              <span>⚠️</span> На свой страх і рызыку
+            <span class="inline-flex items-center gap-1 bg-amber-600/95 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm font-medium shadow-xs" title="Створана да 1956 г. Дата або гады жыцця аўтара патрабуюць удакладнення">
+              <span>🟡</span> Трэба праверыць
             </span>
           `;
         } else {
           pdBadge = `
-            <span class="inline-flex items-center gap-1 bg-rose-700/95 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm font-medium shadow-xs" title="Створана менш чым 71 год таму (пасля 1955 г.). Ахоўваецца аўтарскім правам — загрузка забароненая!">
-              <span>⛔</span> Нельга грузіць
+            <span class="inline-flex items-center gap-1 bg-rose-700/95 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm font-medium shadow-xs" title="Ахоўваецца аўтарскім правам (аўтар памёр менш за 70 гадоў таму)">
+              <span>⛔</span> Нельга загружаць
             </span>
           `;
         }
@@ -1491,407 +1557,229 @@
 
       if (!item.is2D) {
         modalPDStatusBadge.innerHTML = `
-          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-stone-200 text-stone-700">
-            <span>📦</span> 3D-аб'ект (Не PD-Art)
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-stone-200 text-stone-700">
+            <span>📦</span> 3D-аб’ект (Не для Вікісховішча)
           </span>
         `;
         modalCommonsActionBox.innerHTML = `
-          <div class="p-3.5 bg-stone-100 rounded-xl text-xs text-stone-600 border border-stone-200 leading-relaxed space-y-1.5">
-            <div class="flex items-center gap-2 font-bold text-stone-800 text-xs">
-              <span>⚠️</span> Увага для Вікісховішча: 3D-аб'ект
+          <div class="p-4 bg-stone-100 rounded-xl text-xs text-stone-700 border border-stone-200 leading-relaxed space-y-2">
+            <div class="font-bold text-stone-900 flex items-center gap-2 text-sm">
+              <span>ℹ️</span> Экспанат з’яўляецца аб’ёмным прадметам
             </div>
             <p>
-              Гэты экспанат з'яўляецца <strong>трохмерным</strong> аб'ектам (крэсла, мэбля, зброя, скульптура, посуд, прылада). Паводле правіл Wikimedia Commons і судовай практыкі ЗША, фатограф музея мае асобнае аўтарскае права на фатаграфію 3D-аб'екта (выбар асвятлення, ракурсу і кампазіцыі).
-            </p>
-            <p class="text-[11px] text-stone-500">
-              Таму гэты здымак не падпадае пад правіла <em>Bridgeman v. Corel</em> і не можа загружацца ў Вікісховішча без пісьмовага дазволу фатографа або вольнай ліцэнзіі CC.
+              Посуд, мэбля, зброя, скульптура і іншыя трохмерныя прадметы патрабуюць асобнага дазволу ад музейнага фатографа. Таму загрузка на Вікісховішча пакуль немагчымая без вольнай ліцэнзіі аўтара фотаздымка.
             </p>
           </div>
         `;
       } else if (item.pdStatus === 'forbidden') {
         modalPDStatusBadge.innerHTML = `
-          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300">
-            <span>⛔</span> Загрузка забароненая (&lt;71 года)
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300">
+            <span>⛔</span> Нельга загружаць
           </span>
         `;
         modalCommonsActionBox.innerHTML = `
-          <div class="p-3.5 bg-rose-50 rounded-xl border border-rose-300 text-rose-900 space-y-2">
-            <div class="flex items-center justify-between flex-wrap gap-1">
-              <span class="text-xs font-bold text-rose-950 flex items-center gap-1.5">
-                <span>⛔</span> Твор ахоўваецца аўтарскім правам — загрузка забароненая!
-              </span>
-              <span class="text-[10px] bg-rose-200 text-rose-900 px-2 py-0.5 rounded font-semibold">Створана &lt; 71 года таму</span>
+          <div class="p-4 bg-rose-50 rounded-xl border border-rose-200 text-rose-900 space-y-2 text-xs leading-relaxed">
+            <div class="font-bold text-rose-950 flex items-center gap-1.5 text-sm">
+              <span>⛔</span> Твор ахоўваецца аўтарскім правам
             </div>
-            <p class="text-xs leading-relaxed">
-              ${item.pdReason}. Паводле заканадаўства Беларусі і ЗША (дзе размяшчаюцца серверы фонда Вікімедыя), тэрмін аховы аўтарскага права складае ўсё жыццё аўтара + <strong>70 гадоў</strong> пасля яго смерці.
+            <p>
+              ${item.pdReason}. Аўтар памёр менш за 70 гадоў таму, таму твор не перайшоў у грамадскі набытак і яго нельга размяшчаць на Вікісховішчы.
             </p>
-            <p class="text-[11px] text-rose-800/90 leading-relaxed bg-white/70 p-2.5 rounded-lg border border-rose-200">
-              ⚠️ Загрузка гэтага файла ў Вікісховішча без афіцыйнага дазволу аўтара/праваўладальніка альбо вольнай ліцэнзіі Creative Commons прывядзе да парушэння правоў і неадкладнага выдалення файла адміністратарамі.
-            </p>
-          </div>
-        `;
-      } else if (item.pdStatus === 'uncertain') {
-        modalPDStatusBadge.innerHTML = `
-          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300">
-            <span>⚠️</span> На свой страх і рызыку
-          </span>
-        `;
-        modalCommonsActionBox.innerHTML = `
-          <div class="p-3.5 bg-amber-50/90 rounded-xl border border-amber-300 space-y-3">
-            <div>
-              <div class="flex items-center justify-between flex-wrap gap-1 mb-1">
-                <span class="text-xs font-bold text-amber-950 flex items-center gap-1">
-                  <span>⚠️</span> Заўвага: Загрузка на свой страх і рызыку
-                </span>
-                <span class="text-[10px] bg-amber-200 text-amber-950 px-2 py-0.5 rounded font-semibold">Створана да 1956 г. / дата патрабуе ўдакладнення</span>
-              </div>
-              <p class="text-[11px] text-amber-900 leading-relaxed">
-                ${item.pdReason}. Твор створаны/апублікаваны раней за 1956 год, але пазней за 1928 год. У ЗША (серверы Вікімедыя) ён знаходзіцца ў грамадскім набытку, толькі калі аўтар памёр больш за 70 гадоў таму, альбо калі твор быў апублікаваны без захавання патрабаванняў капірайту. Калі вы маеце дадатковыя звесткі пра аўтара або гатовыя загрузіць на свой страх і рызыку, вы можаце сфарміраваць апісанне і назву ніжэй.
-              </p>
-            </div>
-
-            ${uploadedInfo ? `
-              <div class="p-3 bg-blue-100/90 border border-blue-300 rounded-xl flex items-center justify-between gap-3 text-xs text-blue-950 shadow-xs mb-2">
-                <div>
-                  <span class="font-bold flex items-center gap-1.5">
-                    <span>✅</span> Гэты экспанат ужо ёсць на Вікісховішчы!
-                  </span>
-                  <a href="${uploadedInfo.commonsUrl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(uploadedInfo.fileTitle))}" target="_blank" class="text-blue-800 font-semibold underline truncate block mt-0.5 max-w-sm">
-                    ${uploadedInfo.fileTitle} ↗
-                  </a>
-                </div>
-                <div class="flex items-center gap-1.5 flex-shrink-0">
-                  <a href="${uploadedInfo.commonsUrl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(uploadedInfo.fileTitle))}" target="_blank" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold shadow-xs whitespace-nowrap">
-                    Адкрыць ↗
-                  </a>
-                  <button type="button" onclick="unmarkAsUploadedToCommons('${item.id}')" class="px-2.5 py-1.5 bg-white/90 hover:bg-white text-stone-600 hover:text-red-600 rounded-lg text-xs font-bold border border-blue-200 transition shadow-xs" title="Зняць адзнаку (калі файл яшчэ не быў загружаны на Вікісховішча)">
-                    ✕ Зняць
-                  </button>
-                </div>
-              </div>
-            ` : ''}
-
-            <!-- КНОПКА 1-КЛІК ЗАГРУЗКІ -->
-            <button
-              type="button"
-              id="modalDirectUploadBtn"
-              onclick="handleDirectUploadClick()"
-              class="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-700 hover:to-orange-800 text-white rounded-lg font-bold text-xs shadow-sm transition transform active:scale-95 mb-2"
-              title="Спампаваць выяву і адкрыць запоўненую форму на Вікісховішчы (альбо наўпрост праз лакальнага робата)"
-            >
-              <span>⚡ 1-Клік хуткая загрузка на Вікісховішча</span>
-            </button>
-
-            <!-- БЛОК ПАЦВЕРДЖАННЯ ЗАГРУЗКІ -->
-            <div id="modalUploadConfirmBox" class="hidden p-3 bg-amber-50 border border-amber-300 rounded-xl space-y-2 text-xs text-amber-950 mb-2">
-              <div class="font-bold flex items-center gap-1.5 text-amber-900">
-                <span>⏳</span> Файл спампаваны і адкрыты на Вікісховішчы!
-              </div>
-              <p class="text-[11px] leading-relaxed text-amber-900">
-                1. У адкрытай укладцы Вікісховішча націсніце <strong>«Выбраць файл»</strong> і абярыце спампаваны файл.<br>
-                2. Націсніце сінюю кнопку <strong>«Загрузіць файл»</strong> унізе старонкі Вікісховішча.<br>
-                3. Калі загрузка завершана, націсніце кнопку ніжэй, каб пазначыць экспанат у каталогу:
-              </p>
-              <button 
-                type="button" 
-                onclick="markAsUploadedToCommons('${item.id}', document.getElementById('modalSuggestedFilenameDisplay').textContent.replace(/^📁\s*/, '').trim())"
-                class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition shadow-sm flex items-center justify-center gap-1.5"
-              >
-                <span>✅</span> Я завяршыў загрузку (пазначыць у каталогу)
-              </button>
-            </div>
-
-            <!-- Прапанаванае імя файла -->
-            <div class="bg-white/90 rounded-lg p-2 border border-amber-200 text-xs">
-              <span class="text-[10px] text-stone-500 font-medium block mb-0.5">Прапанаваная назва для Вікісховішча:</span>
-              <span id="modalSuggestedFilenameDisplay" class="font-mono text-stone-900 font-semibold text-[11px] break-all select-all">📁 ${activeSuggestedFilename}</span>
-            </div>
-
-            <!-- Кнопкі -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <!-- Крок 1: Спампаваць актыўную выяву на камп'ютар + кнопка адкрыць у асобнай укладцы -->
-              <div class="flex items-center gap-1.5">
-                <button 
-                  type="button"
-                  id="modalDownloadBtn"
-                  onclick="downloadImageDirect()"
-                  class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white hover:bg-stone-100 text-stone-900 text-xs font-bold rounded-lg border border-stone-300 shadow-xs transition text-center group"
-                  title="Спампаваць файл непасрэдна на ваш камп'ютар"
-                >
-                  <span>📥 1. Спампаваць выяву ${totalImgs > 1 ? `(${currentModalImageIndex + 1} з ${totalImgs})` : ''}</span>
-                  <span class="text-[10px] text-stone-400 font-normal">(.JPG)</span>
-                </button>
-                <a 
-                  id="modalOpenNewTabBtn"
-                  href="${cData.currentImgUrl}" 
-                  target="_blank" 
-                  rel="noopener"
-                  class="px-2.5 py-2.5 bg-white hover:bg-stone-100 text-stone-700 hover:text-stone-900 text-xs font-bold rounded-lg border border-stone-300 shadow-xs transition flex items-center justify-center"
-                  title="Адкрыць выяву ў новай укладцы браўзера ↗"
-                >
-                  <span>🔍 ↗</span>
-                </a>
-              </div>
-
-              <!-- Крок 2: Адкрыць Вікісховішча -->
-              <a 
-                id="modalUploadBtn"
-                href="${cData.uploadUrl}" 
-                target="_blank" 
-                rel="noopener"
-                onclick="showToast('Адкрыта форма загрузкі на Вікісховішчы!', '🚀')"
-                class="flex items-center justify-center gap-2 px-3.5 py-2.5 bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold rounded-lg shadow-sm transition text-center"
-              >
-                <span>⬆️ 2. Адкрыць Special:Upload (на свой страх і рызыку) ↗</span>
-              </a>
-            </div>
-
-            <!-- БЛОК GEMINI AI -->
-            <div class="p-3 bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 rounded-xl border border-indigo-200 shadow-xs space-y-2">
-              <div class="flex items-center justify-between flex-wrap gap-2">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-sm">✨</span>
-                  <span class="text-xs font-bold text-indigo-950">Gemini AI: 9-моўнае афармленне і назва файла</span>
-                </div>
-                <button 
-                  type="button" 
-                  onclick="openGeminiSettings()" 
-                  class="text-[10px] text-indigo-700 hover:text-indigo-950 underline font-semibold flex items-center gap-1"
-                >
-                  <span id="geminiKeyStatusText">⚙️ Налады Gemini</span>
-                </button>
-              </div>
-              ${isAiCached ? `
-                <div class="flex items-center justify-between text-[11px] bg-white/90 border border-emerald-300 text-emerald-950 p-2 rounded-lg shadow-xs">
-                  <div class="flex items-center gap-1.5 font-semibold text-emerald-800">
-                    <span>💾</span> Апісанне і назва ШІ захаваныя ў памяці браўзера!
-                  </div>
-                  <button 
-                    type="button" 
-                    onclick="clearCachedAiData('${item.id}', ${currentModalImageIndex})" 
-                    class="text-stone-400 hover:text-red-600 underline text-[10px] transition"
-                    title="Скінуць да стандартнага шаблона"
-                  >
-                    Скінуць
-                  </button>
-                </div>
-              ` : `
-                <p class="text-[11px] text-indigo-900/80 leading-relaxed">
-                  Сфармуе назву файла з годам і запоўніць шаблон <code>{Artwork}</code> на <strong>9 мовах</strong> (be, en, fr, de, es, it, pl, lt, ru), беларускай лацінкай для тапонімаў, шаблонамі <code>Size</code>, <code>Technique</code>, <code>Institution</code> і катэгорыямі.
-                </p>
-              `}
-              <button 
-                type="button" 
-                id="btnGenerateGemini"
-                onclick="generateWithGemini()"
-                class="w-full flex items-center justify-center gap-2 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-bold rounded-lg shadow transition"
-              >
-                <span>${isAiCached ? '🔄 Перагенераваць апісанне праз Gemini AI' : '✨ Сфарміраваць 9-моўнае апісанне праз Gemini AI'}</span>
-              </button>
-            </div>
-
-            <!-- Разгортваемы блок з гатовым вікітэкстам -->
-            <div class="pt-1.5 border-t border-amber-200">
-              <div class="flex items-center justify-between text-[11px] text-amber-950 font-medium mb-1">
-                <span>Гатовы шаблон {Artwork} (падстаўлены ў форму Вікісховішча):</span>
-                <button 
-                  type="button" 
-                  onclick="copyWikitextDirect()" 
-                  class="text-amber-800 hover:text-amber-950 underline font-bold flex items-center gap-1"
-                >
-                  <span>📋</span> Скапіяваць тэкст
-                </button>
-              </div>
-              <textarea 
-                id="modalWikitextPreview" 
-                readonly 
-                rows="3" 
-                class="w-full text-[10px] font-mono p-2 bg-white border border-amber-200 rounded-lg text-stone-700 focus:outline-none select-all"
-              >${activeWikitext}</textarea>
-            </div>
           </div>
         `;
       } else {
-        // pdStatus === 'pd' (Unconditional PD-Art)
-        modalPDStatusBadge.innerHTML = `
-          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-            <span>✅</span> 2D Грамадскі набытак (PD-Art)
+        // pdStatus === 'pd' or 'uncertain'
+        const isPD = (item.pdStatus === 'pd');
+        modalPDStatusBadge.innerHTML = isPD ? `
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+            <span>🟢</span> Можна загружаць (Грамадскі набытак)
+          </span>
+        ` : `
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+            <span>🟡</span> Трэба праверыць гады жыцця аўтара
           </span>
         `;
+
         modalCommonsActionBox.innerHTML = `
-          <div class="p-3.5 bg-emerald-50/90 rounded-xl border border-emerald-300 space-y-3">
-            <div>
-              <div class="flex items-center justify-between flex-wrap gap-1 mb-1">
-                <span class="text-xs font-bold text-emerald-950">Адпавядае правілу PD-Art для Вікісховішча (Commons)</span>
-                <span class="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-semibold">Беларусь + ЗША (Life+70)</span>
-              </div>
-              <p class="text-[11px] text-emerald-800 leading-relaxed">
-                ${item.pdReason}. Згодна з прэцэдэнтам <em>Bridgeman v. Corel</em>, дакладная фотарэпрадукцыя двухмернага твора ў грамадскім набытку не стварае новага аўтарскага права.
+          <div class="p-4 ${isPD ? 'bg-emerald-50/70 border-emerald-200' : 'bg-amber-50/70 border-amber-200'} rounded-2xl border space-y-3.5">
+            
+            <!-- Тлумачэнне простай мовай -->
+            <div class="text-xs ${isPD ? 'text-emerald-950' : 'text-amber-950'} flex items-start gap-2">
+              <span class="text-base leading-none">${isPD ? '🟢' : '🟡'}</span>
+              <p class="leading-relaxed">
+                ${isPD 
+                  ? `${item.pdReason}. Гэты плоскі твор створаны даўна і знаходзіцца ў грамадскім набытку — яго можна свабодна спампоўваць і загружаць у Вікіпедыю і Вікісховішча.` 
+                  : `${item.pdReason}. Твор створаны да 1956 года. Калі аўтар вядомы і памёр больш за 70 гадоў таму, твор можна свабодна загружаць.`}
               </p>
             </div>
 
+            <!-- Банер, калі экспанат ужо ёсць на Вікісховішчы -->
             ${uploadedInfo ? `
-              <div class="p-3 bg-blue-100/90 border border-blue-300 rounded-xl flex items-center justify-between gap-3 text-xs text-blue-950 shadow-xs mb-2">
+              <div class="p-3 bg-blue-100 border border-blue-300 rounded-xl flex items-center justify-between gap-3 text-xs text-blue-950 shadow-xs">
                 <div>
                   <span class="font-bold flex items-center gap-1.5">
-                    <span>✅</span> Гэты экспанат ужо ёсць на Вікісховішчы!
+                    <span>✅</span> Экспанат ужо пазначаны як загружаны!
                   </span>
                   <a href="${uploadedInfo.commonsUrl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(uploadedInfo.fileTitle))}" target="_blank" class="text-blue-800 font-semibold underline truncate block mt-0.5 max-w-sm">
                     ${uploadedInfo.fileTitle} ↗
                   </a>
                 </div>
-                <div class="flex items-center gap-1.5 flex-shrink-0">
+                <div class="flex items-center gap-2 flex-shrink-0">
                   <a href="${uploadedInfo.commonsUrl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(uploadedInfo.fileTitle))}" target="_blank" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold shadow-xs whitespace-nowrap">
                     Адкрыць ↗
                   </a>
-                  <button type="button" onclick="unmarkAsUploadedToCommons('${item.id}')" class="px-2.5 py-1.5 bg-white/90 hover:bg-white text-stone-600 hover:text-red-600 rounded-lg text-xs font-bold border border-blue-200 transition shadow-xs" title="Зняць адзнаку (калі файл яшчэ не быў загружаны на Вікісховішча)">
+                  <button type="button" onclick="unmarkCurrentModalItem()" class="px-2.5 py-1.5 bg-white text-stone-600 hover:text-red-600 rounded-lg text-xs font-semibold border border-blue-200 transition shadow-xs cursor-pointer" title="Зняць памылковую адзнаку">
                     ✕ Зняць
                   </button>
                 </div>
               </div>
             ` : ''}
 
-            <!-- КНОПКА 1-КЛІК НАЎПРОСТАВАЙ ЗАГРУЗКІ -->
-            <button
-              type="button"
-              id="modalDirectUploadBtn"
-              onclick="handleDirectUploadClick()"
-              class="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-lg font-bold text-xs shadow-sm transition transform active:scale-95 mb-2"
-              title="Хуткая 1-клік загрузка: спампаваць выяву, скапіяваць апісанне і адкрыць Special:Upload"
-            >
-              <span>⚡ 1-Клік хуткая загрузка на Вікісховішча</span>
-            </button>
-
-            <!-- БЛОК ПАЦВЕРДЖАННЯ ЗАГРУЗКІ ДЛЯ ПУБЛІЧНАГА НАБЫТКУ -->
-            <div id="modalUploadConfirmBox" class="hidden p-3 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2 text-xs text-emerald-950 mb-2">
-              <div class="font-bold flex items-center gap-1.5 text-emerald-900">
-                <span>⏳</span> Файл спампаваны і адкрыты на Вікісховішчы!
+            <!-- Назва файла для Вікісховішча -->
+            <div class="bg-white rounded-xl p-3 border border-stone-200 shadow-xs">
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span class="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Назва файла для Вікісховішча:</span>
+                <button type="button" onclick="copySuggestedFilename()" class="text-[11px] text-amber-800 hover:text-amber-950 font-bold underline flex items-center gap-1 cursor-pointer">
+                  <span>📋</span> Скапіяваць назву
+                </button>
               </div>
-              <p class="text-[11px] leading-relaxed text-emerald-900">
-                1. Ва ўкладцы Вікісховішча націсніце <strong>«Выбраць файл»</strong> (першы ў спампаваных).<br>
-                2. Апісанне на 9 мовах ужо ў буферы абмену (Ctrl+V) ці падстаўлена ў форму.<br>
-                3. Націсніце сінюю кнопку <strong>«Загрузіць файл»</strong> унізе формы Вікісховішча.<br>
-                4. Калі загрузка завершана, націсніце кнопку ніжэй, каб пазначыць экспанат у каталогу:
+              <div id="modalSuggestedFilenameDisplay" class="font-mono text-stone-900 font-bold text-xs sm:text-sm break-all select-all bg-stone-50 p-2.5 rounded-lg border border-stone-200">
+                📁 ${activeSuggestedFilename}
+              </div>
+            </div>
+
+            <!-- АДНА ГАЛОЎНАЯ КНОПКА ЗАГРУЗКІ -->
+            <div class="space-y-1.5">
+              <button
+                type="button"
+                id="modalDirectUploadBtn"
+                onclick="handleDirectUploadClick()"
+                class="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-gradient-to-r ${isPD ? 'from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800' : 'from-amber-600 to-orange-700 hover:from-amber-700 hover:to-orange-800'} text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition transform active:scale-98 cursor-pointer"
+              >
+                <span class="text-base">🚀</span>
+                <span>Спампаваць малюнак і перайсці да загрузкі</span>
+              </button>
+              <p class="text-[11px] text-stone-500 text-center leading-tight">
+                Малюнак спампуецца ў «Загрузкі» (Downloads), апісанне скапіюецца, і адкрыецца форма Вікісховішча.
               </p>
+            </div>
+
+            <!-- БЛОК ІНСТРУКЦЫІ (з'яўляецца пасля націску кнопкі) -->
+            <div id="modalUploadConfirmBox" class="hidden p-3.5 bg-white border-2 border-emerald-400 rounded-xl space-y-2.5 text-xs text-stone-800 shadow-sm animate-fade-in">
+              <div class="font-bold flex items-center gap-1.5 text-emerald-800 text-sm">
+                <span>🎉</span> Малюнак спампаваны, форма Вікісховішча адкрыта!
+              </div>
+              <div class="bg-emerald-50 p-3 rounded-lg border border-emerald-200 space-y-1.5 text-emerald-950 text-xs">
+                <p class="font-semibold text-stone-900">Каб завяршыць, зрабіце 2 простыя крокі на старонцы Вікісховішча:</p>
+                <ol class="list-decimal list-inside space-y-1 pl-1 text-stone-700">
+                  <li>Націсніце кнопку <strong>«Выбраць файл»</strong> (выберыце спампаваны малюнак у папцы Downloads).</li>
+                  <li>Пракруціце ўніз і націсніце сінюю кнопку <strong>«Загрузіць файл»</strong> (апісанне ўжо запоўнена або ўстаўце яго праз <strong>Ctrl+V</strong>).</li>
+                </ol>
+              </div>
               <button 
                 type="button" 
-                onclick="markAsUploadedToCommons('${item.id}', document.getElementById('modalSuggestedFilenameDisplay').textContent.replace(/^📁\s*/, '').trim())"
-                class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition shadow-sm flex items-center justify-center gap-1.5"
+                onclick="confirmModalUpload()"
+                class="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>✅</span> Я завяршыў загрузку (пазначыць у каталогу)
               </button>
             </div>
 
-            <!-- Прапанаванае імя файла -->
-            <div class="bg-white/80 rounded-lg p-2 border border-emerald-200 text-xs">
-              <span class="text-[10px] text-stone-500 font-medium block mb-0.5">Прапанаваная назва для Вікісховішча:</span>
-              <span id="modalSuggestedFilenameDisplay" class="font-mono text-stone-900 font-semibold text-[11px] break-all select-all">📁 ${activeSuggestedFilename}</span>
-            </div>
+            <!-- ДЭТАЛІ АПІСАННЯ І ШІ (АККАРДЭОН) -->
+            <details class="border-t border-stone-200 pt-2 text-xs">
+              <summary class="cursor-pointer font-bold text-stone-600 hover:text-stone-900 py-1.5 flex items-center justify-between select-none">
+                <span class="flex items-center gap-1.5">
+                  <span>📄</span> Паказаць тэкст апісання і налады ШІ
+                </span>
+                <span class="text-stone-400 font-normal text-[11px]">разгарнуць ▼</span>
+              </summary>
 
-            <!-- ПАДЗЕЛЕНЫЯ ДВЕ КНОПКІ (БЕЗ БЛАКАВАННЯ БРАЎЗЕРАМ) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              
-              <!-- Крок 1: Спампаваць актыўную выяву на камп'ютар + кнопка адкрыць у асобнай укладцы -->
-              <div class="flex items-center gap-1.5">
-                <button 
-                  type="button"
-                  id="modalDownloadBtn"
-                  onclick="downloadImageDirect()"
-                  class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white hover:bg-stone-100 text-stone-900 text-xs font-bold rounded-lg border border-stone-300 shadow-xs transition text-center group"
-                  title="Спампаваць файл непасрэдна на ваш камп'ютар"
-                >
-                  <span>📥 1. Спампаваць выяву ${totalImgs > 1 ? `(${currentModalImageIndex + 1} з ${totalImgs})` : ''}</span>
-                  <span class="text-[10px] text-stone-400 font-normal">(.JPG)</span>
-                </button>
-                <a 
-                  id="modalOpenNewTabBtn"
-                  href="${cData.currentImgUrl}" 
-                  target="_blank" 
-                  rel="noopener"
-                  class="px-2.5 py-2.5 bg-white hover:bg-stone-100 text-stone-700 hover:text-stone-900 text-xs font-bold rounded-lg border border-stone-300 shadow-xs transition flex items-center justify-center"
-                  title="Адкрыць выяву ў новай укладцы браўзера ↗"
-                >
-                  <span>🔍 ↗</span>
-                </a>
-              </div>
-
-              <!-- Крок 2: Адкрыць Вікісховішча з ужо запоўненымі параметрамі -->
-              <a 
-                id="modalUploadBtn"
-                href="${cData.uploadUrl}" 
-                target="_blank" 
-                rel="noopener"
-                onclick="showToast('Адкрыта форма загрузкі на Вікісховішчы!', '🚀')"
-                class="flex items-center justify-center gap-2 px-3.5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-lg shadow-sm transition text-center"
-              >
-                <span>⬆️ 2. Адкрыць Special:Upload ${totalImgs > 1 ? `(выява ${currentModalImageIndex + 1})` : ''} ↗</span>
-              </a>
-
-            </div>
-
-            <!-- БЛОК GEMINI AI: 9-МОЎНАЕ АПІСАННЕ -->
-            <div class="p-3 bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 rounded-xl border border-indigo-200 shadow-xs space-y-2">
-              <div class="flex items-center justify-between flex-wrap gap-2">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-sm">✨</span>
-                  <span class="text-xs font-bold text-indigo-950">Gemini AI: 9-моўнае афармленне і назва файла</span>
-                </div>
-                <button 
-                  type="button" 
-                  onclick="openGeminiSettings()" 
-                  class="text-[10px] text-indigo-700 hover:text-indigo-950 underline font-semibold flex items-center gap-1"
-                >
-                  <span id="geminiKeyStatusText">⚙️ Налады Gemini</span>
-                </button>
-              </div>
-              ${isAiCached ? `
-                <div class="flex items-center justify-between text-[11px] bg-white/90 border border-emerald-300 text-emerald-950 p-2 rounded-lg shadow-xs">
-                  <div class="flex items-center gap-1.5 font-semibold text-emerald-800">
-                    <span>💾</span> Апісанне і назва ШІ захаваныя ў памяці браўзера!
+              <div class="pt-3 space-y-3">
+                <!-- Блок Gemini AI -->
+                <div class="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-indigo-200 space-y-2">
+                  <div class="flex items-center justify-between flex-wrap gap-2">
+                    <span class="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                      <span>✨</span> Пераклад і афармленне на 9 моў (Gemini AI)
+                    </span>
+                    <button 
+                      type="button" 
+                      onclick="openGeminiSettings()" 
+                      class="text-[10px] text-indigo-700 hover:text-indigo-950 underline font-semibold cursor-pointer"
+                    >
+                      <span id="geminiKeyStatusText">⚙️ Налады ключа</span>
+                    </button>
                   </div>
+
+                  ${isAiCached ? `
+                    <div class="flex items-center justify-between text-[11px] bg-white border border-emerald-300 text-emerald-950 p-2 rounded-lg shadow-xs">
+                      <span class="font-semibold text-emerald-800 flex items-center gap-1">
+                        <span>💾</span> Захаваны 9-моўны варыянт ШІ!
+                      </span>
+                      <button 
+                        type="button" 
+                        onclick="clearCachedAiDataForCurrentModal()" 
+                        class="text-stone-400 hover:text-red-600 underline text-[10px] cursor-pointer"
+                        title="Скінуць да стандартнага шаблона"
+                      >
+                        Скінуць
+                      </button>
+                    </div>
+                  ` : `
+                    <p class="text-[11px] text-indigo-900/80 leading-relaxed">
+                      Перакладзе апісанне і назву на 9 моў (be, en, fr, de, es, it, pl, lt, ru) беларускай лацінкай.
+                    </p>
+                  `}
+
                   <button 
                     type="button" 
-                    onclick="clearCachedAiData('${item.id}', ${currentModalImageIndex})" 
-                    class="text-stone-400 hover:text-red-600 underline text-[10px] transition"
-                    title="Скінуць да стандартнага шаблона"
+                    id="btnGenerateGemini"
+                    onclick="generateWithGemini()"
+                    class="w-full flex items-center justify-center gap-2 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-bold rounded-lg shadow transition cursor-pointer"
                   >
-                    Скінуць
+                    <span>${isAiCached ? '🔄 Перагенераваць праз Gemini AI' : '✨ Сфарміраваць 9-моўнае апісанне праз Gemini AI'}</span>
                   </button>
                 </div>
-              ` : `
-                <p class="text-[11px] text-indigo-900/80 leading-relaxed">
-                  Сфармуе назву файла з годам і запоўніць шаблон <code>{Artwork}</code> на <strong>9 мовах</strong> (be, en, fr, de, es, it, pl, lt, ru), беларускай лацінкай для тапонімаў, шаблонамі <code>Size</code>, <code>Technique</code>, <code>Institution</code> і катэгорыямі.
-                </p>
-              `}
-              <button 
-                type="button" 
-                id="btnGenerateGemini"
-                onclick="generateWithGemini()"
-                class="w-full flex items-center justify-center gap-2 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-bold rounded-lg shadow transition"
-              >
-                <span>${isAiCached ? '🔄 Перагенераваць апісанне праз Gemini AI' : '✨ Сфарміраваць 9-моўнае апісанне праз Gemini AI'}</span>
-              </button>
-            </div>
 
-            <!-- Разгортваемы блок з гатовым вікітэкстам -->
-            <div class="pt-1.5 border-t border-emerald-200">
-              <div class="flex items-center justify-between text-[11px] text-emerald-900 font-medium mb-1">
-                <span>Гатовы шаблон {Artwork} (падстаўлены ў форму Вікісховішча):</span>
-                <button 
-                  type="button" 
-                  onclick="copyWikitextDirect()" 
-                  class="text-emerald-700 hover:text-emerald-900 underline font-bold flex items-center gap-1"
-                >
-                  <span>📋</span> Скапіяваць тэкст
-                </button>
+                <!-- Тэкставае поле гатовага вікітэксту -->
+                <div>
+                  <div class="flex items-center justify-between text-[11px] text-stone-600 font-medium mb-1">
+                    <span>Гатовы тэкст для Вікісховішча:</span>
+                    <button 
+                      type="button" 
+                      onclick="copyWikitextDirect()" 
+                      class="text-indigo-700 hover:text-indigo-900 underline font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>📋</span> Скапіяваць тэкст
+                    </button>
+                  </div>
+                  <textarea 
+                    id="modalWikitextPreview" 
+                    readonly 
+                    rows="3" 
+                    class="w-full text-[10px] font-mono p-2 bg-white border border-stone-200 rounded-lg text-stone-700 focus:outline-none select-all"
+                  >${activeWikitext}</textarea>
+                </div>
+
+                <!-- Спасылка толькі спампаваць малюнак -->
+                <div class="pt-1 flex items-center justify-between text-xs text-stone-500">
+                  <button 
+                    type="button" 
+                    onclick="downloadImageDirect()" 
+                    class="hover:text-stone-800 underline flex items-center gap-1 text-[11px] cursor-pointer"
+                  >
+                    <span>📥</span> Спампаваць толькі файл выявы (.JPG)
+                  </button>
+                  <a 
+                    href="${cData.currentImgUrl}" 
+                    target="_blank" 
+                    rel="noopener"
+                    class="hover:text-stone-800 underline flex items-center gap-1 text-[11px]"
+                  >
+                    <span>🔍</span> Адкрыць фота ў поўным памеры ↗
+                  </a>
+                </div>
               </div>
-              <textarea 
-                id="modalWikitextPreview" 
-                readonly 
-                rows="3" 
-                class="w-full text-[10px] font-mono p-2 bg-white border border-emerald-200 rounded-lg text-stone-700 focus:outline-none select-all"
-              >${activeWikitext}</textarea>
-            </div>
+            </details>
 
           </div>
         `;
@@ -2067,6 +1955,64 @@
           const inp = document.getElementById('modalQidInput');
           if (inp) inp.focus();
         }, 100);
+      }
+    };
+
+    
+    window.confirmModalUpload = function() {
+      const item = window.currentModalItem;
+      if (!item) return;
+      const fnDisplay = document.getElementById('modalSuggestedFilenameDisplay');
+      const fn = fnDisplay ? fnDisplay.textContent.replace(/^📁\s*/, '').trim() : '';
+      if (typeof window.markAsUploadedToCommons === 'function') {
+        window.markAsUploadedToCommons(item.id, fn);
+      }
+    };
+
+    window.unmarkCurrentModalItem = function() {
+      const item = window.currentModalItem;
+      if (!item) return;
+      if (typeof window.unmarkAsUploadedToCommons === 'function') {
+        window.unmarkAsUploadedToCommons(item.id);
+      }
+    };
+
+    window.clearCachedAiDataForCurrentModal = function() {
+      const item = window.currentModalItem;
+      if (!item) return;
+      const idx = (window.currentModalImageIndex !== undefined) ? window.currentModalImageIndex : 0;
+      if (typeof window.clearCachedAiData === 'function') {
+        window.clearCachedAiData(item.id, idx);
+      }
+    };
+
+    window.copySuggestedFilename = function() {
+      const fnDisplay = document.getElementById('modalSuggestedFilenameDisplay');
+      if (fnDisplay) {
+        const fn = fnDisplay.textContent.replace(/^📁\s*/, '').trim();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(fn).then(() => {
+            if (typeof window.showToast === 'function') {
+              window.showToast('Назва файла скапіявана!', '📋');
+            }
+          });
+        }
+      }
+    };
+
+    window.openHelpModal = function() {
+      const modal = document.getElementById('helpModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+    };
+
+    window.closeHelpModal = function() {
+      const modal = document.getElementById('helpModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
       }
     };
 
