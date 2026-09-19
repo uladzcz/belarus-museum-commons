@@ -1007,6 +1007,65 @@
       return { suggestedFilename, wikitext, uploadUrl, currentImgUrl, totalImgs, imgIndex };
     }
 
+    // ==========================================
+    // GEMINI AI PERSISTENT CACHE (localStorage)
+    // ==========================================
+    const STORAGE_AI_CACHE = 'dkmf_ai_cache';
+
+    window.getAiCache = function() {
+      try {
+        const raw = localStorage.getItem(STORAGE_AI_CACHE);
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        return {};
+      }
+    };
+
+    window.saveAiCache = function(cache) {
+      try {
+        localStorage.setItem(STORAGE_AI_CACHE, JSON.stringify(cache));
+      } catch (e) {
+        console.warn('Could not save AI cache:', e);
+      }
+    };
+
+    window.getCachedAiData = function(itemId, imgIdx = 0) {
+      if (!itemId) return null;
+      const cache = window.getAiCache();
+      const key = String(itemId) + '_' + imgIdx;
+      return cache[key] || null;
+    };
+
+    window.setCachedAiData = function(itemId, imgIdx, suggestedName, wikitext) {
+      if (!itemId) return;
+      const cache = window.getAiCache();
+      const key = String(itemId) + '_' + imgIdx;
+      cache[key] = {
+        suggestedName: suggestedName,
+        wikitext: wikitext,
+        savedAt: new Date().toISOString()
+      };
+      window.saveAiCache(cache);
+      if (typeof window.updateModalCommonsAndImage === 'function') {
+        window.updateModalCommonsAndImage();
+      }
+    };
+
+    window.clearCachedAiData = function(itemId, imgIdx = 0) {
+      if (!itemId) return;
+      const cache = window.getAiCache();
+      const key = String(itemId) + '_' + imgIdx;
+      delete cache[key];
+      window.saveAiCache(cache);
+      if (typeof window.updateModalCommonsAndImage === 'function') {
+        window.updateModalCommonsAndImage();
+      }
+      if (typeof window.showToast === 'function') {
+        window.showToast('Захаванае апісанне ШІ скінута да стандартнага', 'ℹ️');
+      }
+    };
+
+
 
     function renderPagination(totalItems) {
       const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
@@ -1414,9 +1473,21 @@
         stripEl.innerHTML = '';
       }
 
-      // 1. COMMONS SECTION (WITH CURRENT IMAGE DATA)
+      // 1. COMMONS SECTION (WITH CURRENT IMAGE DATA & AI CACHE)
       const cData = buildCommonsData(item, currentModalImageIndex);
       const uploadedInfo = window.isUploadedToCommons ? window.isUploadedToCommons(item) : null;
+
+      // Check for cached Gemini AI generation
+      const cachedAi = (typeof window.getCachedAiData === 'function') ? window.getCachedAiData(item.id, currentModalImageIndex) : null;
+      let activeSuggestedFilename = cData.suggestedFilename;
+      let activeWikitext = cData.wikitext;
+      let isAiCached = false;
+
+      if (cachedAi && cachedAi.wikitext && cachedAi.suggestedName) {
+        activeSuggestedFilename = cachedAi.suggestedName;
+        activeWikitext = cachedAi.wikitext;
+        isAiCached = true;
+      }
 
       if (!item.is2D) {
         modalPDStatusBadge.innerHTML = `
@@ -1533,7 +1604,7 @@
             <!-- Прапанаванае імя файла -->
             <div class="bg-white/90 rounded-lg p-2 border border-amber-200 text-xs">
               <span class="text-[10px] text-stone-500 font-medium block mb-0.5">Прапанаваная назва для Вікісховішча:</span>
-              <span id="modalSuggestedFilenameDisplay" class="font-mono text-stone-900 font-semibold text-[11px] break-all select-all">📁 ${cData.suggestedFilename}</span>
+              <span id="modalSuggestedFilenameDisplay" class="font-mono text-stone-900 font-semibold text-[11px] break-all select-all">📁 ${activeSuggestedFilename}</span>
             </div>
 
             <!-- Кнопкі -->
@@ -1590,16 +1661,32 @@
                   <span id="geminiKeyStatusText">⚙️ Налады Gemini</span>
                 </button>
               </div>
-              <p class="text-[11px] text-indigo-900/80 leading-relaxed">
-                Сфармуе назву файла з годам і запоўніць шаблон <code>{Artwork}</code> на <strong>9 мовах</strong> (be, en, fr, de, es, it, pl, lt, ru), беларускай лацінкай для тапонімаў, шаблонамі <code>Size</code>, <code>Technique</code>, <code>Institution</code> і катэгорыямі.
-              </p>
+              ${isAiCached ? `
+                <div class="flex items-center justify-between text-[11px] bg-white/90 border border-emerald-300 text-emerald-950 p-2 rounded-lg shadow-xs">
+                  <div class="flex items-center gap-1.5 font-semibold text-emerald-800">
+                    <span>💾</span> Апісанне і назва ШІ захаваныя ў памяці браўзера!
+                  </div>
+                  <button 
+                    type="button" 
+                    onclick="clearCachedAiData('${item.id}', ${currentModalImageIndex})" 
+                    class="text-stone-400 hover:text-red-600 underline text-[10px] transition"
+                    title="Скінуць да стандартнага шаблона"
+                  >
+                    Скінуць
+                  </button>
+                </div>
+              ` : `
+                <p class="text-[11px] text-indigo-900/80 leading-relaxed">
+                  Сфармуе назву файла з годам і запоўніць шаблон <code>{Artwork}</code> на <strong>9 мовах</strong> (be, en, fr, de, es, it, pl, lt, ru), беларускай лацінкай для тапонімаў, шаблонамі <code>Size</code>, <code>Technique</code>, <code>Institution</code> і катэгорыямі.
+                </p>
+              `}
               <button 
                 type="button" 
                 id="btnGenerateGemini"
                 onclick="generateWithGemini()"
                 class="w-full flex items-center justify-center gap-2 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-bold rounded-lg shadow transition"
               >
-                <span>✨ Сфарміраваць 9-моўнае апісанне праз Gemini AI</span>
+                <span>${isAiCached ? '🔄 Перагенераваць апісанне праз Gemini AI' : '✨ Сфарміраваць 9-моўнае апісанне праз Gemini AI'}</span>
               </button>
             </div>
 
@@ -1620,7 +1707,7 @@
                 readonly 
                 rows="3" 
                 class="w-full text-[10px] font-mono p-2 bg-white border border-amber-200 rounded-lg text-stone-700 focus:outline-none select-all"
-              >${cData.wikitext}</textarea>
+              >${activeWikitext}</textarea>
             </div>
           </div>
         `;
@@ -1670,15 +1757,35 @@
               id="modalDirectUploadBtn"
               onclick="handleDirectUploadClick()"
               class="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-lg font-bold text-xs shadow-sm transition transform active:scale-95 mb-2"
-              title="Аўтаматычна запампаваць выяву і адправіць на Вікісховішча праз Bot Password"
+              title="Хуткая 1-клік загрузка: спампаваць выяву, скапіяваць апісанне і адкрыць Special:Upload"
             >
-              <span>⚡ 1-Клік наўпроставая загрузка на Вікісховішча</span>
+              <span>⚡ 1-Клік хуткая загрузка на Вікісховішча</span>
             </button>
+
+            <!-- БЛОК ПАЦВЕРДЖАННЯ ЗАГРУЗКІ ДЛЯ ПУБЛІЧНАГА НАБЫТКУ -->
+            <div id="modalUploadConfirmBox" class="hidden p-3 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2 text-xs text-emerald-950 mb-2">
+              <div class="font-bold flex items-center gap-1.5 text-emerald-900">
+                <span>⏳</span> Файл спампаваны і адкрыты на Вікісховішчы!
+              </div>
+              <p class="text-[11px] leading-relaxed text-emerald-900">
+                1. Ва ўкладцы Вікісховішча націсніце <strong>«Выбраць файл»</strong> (першы ў спампаваных).<br>
+                2. Апісанне на 9 мовах ужо ў буферы абмену (Ctrl+V) ці падстаўлена ў форму.<br>
+                3. Націсніце сінюю кнопку <strong>«Загрузіць файл»</strong> унізе формы Вікісховішча.<br>
+                4. Калі загрузка завершана, націсніце кнопку ніжэй, каб пазначыць экспанат у каталогу:
+              </p>
+              <button 
+                type="button" 
+                onclick="markAsUploadedToCommons('${item.id}', document.getElementById('modalSuggestedFilenameDisplay').textContent.replace(/^📁\s*/, '').trim())"
+                class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition shadow-sm flex items-center justify-center gap-1.5"
+              >
+                <span>✅</span> Я завяршыў загрузку (пазначыць у каталогу)
+              </button>
+            </div>
 
             <!-- Прапанаванае імя файла -->
             <div class="bg-white/80 rounded-lg p-2 border border-emerald-200 text-xs">
               <span class="text-[10px] text-stone-500 font-medium block mb-0.5">Прапанаваная назва для Вікісховішча:</span>
-              <span id="modalSuggestedFilenameDisplay" class="font-mono text-stone-900 font-semibold text-[11px] break-all select-all">📁 ${cData.suggestedFilename}</span>
+              <span id="modalSuggestedFilenameDisplay" class="font-mono text-stone-900 font-semibold text-[11px] break-all select-all">📁 ${activeSuggestedFilename}</span>
             </div>
 
             <!-- ПАДЗЕЛЕНЫЯ ДВЕ КНОПКІ (БЕЗ БЛАКАВАННЯ БРАЎЗЕРАМ) -->
@@ -1737,16 +1844,32 @@
                   <span id="geminiKeyStatusText">⚙️ Налады Gemini</span>
                 </button>
               </div>
-              <p class="text-[11px] text-indigo-900/80 leading-relaxed">
-                Сфармуе назву файла з годам і запоўніць шаблон <code>{Artwork}</code> на <strong>9 мовах</strong> (be, en, fr, de, es, it, pl, lt, ru), беларускай лацінкай для тапонімаў, шаблонамі <code>Size</code>, <code>Technique</code>, <code>Institution</code> і катэгорыямі.
-              </p>
+              ${isAiCached ? `
+                <div class="flex items-center justify-between text-[11px] bg-white/90 border border-emerald-300 text-emerald-950 p-2 rounded-lg shadow-xs">
+                  <div class="flex items-center gap-1.5 font-semibold text-emerald-800">
+                    <span>💾</span> Апісанне і назва ШІ захаваныя ў памяці браўзера!
+                  </div>
+                  <button 
+                    type="button" 
+                    onclick="clearCachedAiData('${item.id}', ${currentModalImageIndex})" 
+                    class="text-stone-400 hover:text-red-600 underline text-[10px] transition"
+                    title="Скінуць да стандартнага шаблона"
+                  >
+                    Скінуць
+                  </button>
+                </div>
+              ` : `
+                <p class="text-[11px] text-indigo-900/80 leading-relaxed">
+                  Сфармуе назву файла з годам і запоўніць шаблон <code>{Artwork}</code> на <strong>9 мовах</strong> (be, en, fr, de, es, it, pl, lt, ru), беларускай лацінкай для тапонімаў, шаблонамі <code>Size</code>, <code>Technique</code>, <code>Institution</code> і катэгорыямі.
+                </p>
+              `}
               <button 
                 type="button" 
                 id="btnGenerateGemini"
                 onclick="generateWithGemini()"
                 class="w-full flex items-center justify-center gap-2 px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-bold rounded-lg shadow transition"
               >
-                <span>✨ Сфарміраваць 9-моўнае апісанне праз Gemini AI</span>
+                <span>${isAiCached ? '🔄 Перагенераваць апісанне праз Gemini AI' : '✨ Сфарміраваць 9-моўнае апісанне праз Gemini AI'}</span>
               </button>
             </div>
 
@@ -1767,7 +1890,7 @@
                 readonly 
                 rows="3" 
                 class="w-full text-[10px] font-mono p-2 bg-white border border-emerald-200 rounded-lg text-stone-700 focus:outline-none select-all"
-              >${cData.wikitext}</textarea>
+              >${activeWikitext}</textarea>
             </div>
 
           </div>
@@ -2636,8 +2759,17 @@ LAST|P973|"${item.detailUrl}"`;
         }
         suggestedName = suggestedName.replace(/\s+/g, ' ').trim();
 
-        // Update UI
-        const uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedName)}&wpUploadDescription=${encodeURIComponent(wikitext)}`;
+        // Save to persistent AI cache
+        if (typeof window.setCachedAiData === 'function') {
+          window.setCachedAiData(item.id, currentModalImageIndex, suggestedName, wikitext);
+        }
+
+        // Update UI with safe URL length
+        let safeUploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedName)}`;
+        const encDesc = encodeURIComponent(wikitext);
+        if (encDesc.length < 1500) {
+          safeUploadUrl += `&wpUploadDescription=${encDesc}`;
+        }
 
         const fnDisplay = document.getElementById('modalSuggestedFilenameDisplay');
         if (fnDisplay) fnDisplay.textContent = '📁 ' + suggestedName;
@@ -2653,7 +2785,7 @@ LAST|P973|"${item.detailUrl}"`;
 
         const uploadBtn = document.getElementById('modalUploadBtn');
         if (uploadBtn) {
-          uploadBtn.href = uploadUrl;
+          uploadBtn.href = safeUploadUrl;
         }
 
         showToast(`✨ 9-моўнае апісанне гатова (мадэль: ${successfulModel})!`, '🎉');
@@ -3150,11 +3282,15 @@ LAST|P973|"${item.detailUrl}"`;
   };
 
   window.unmarkAsUploadedToCommons = function(id) {
-    const item = (typeof DATA !== 'undefined' ? DATA.find(d => d.id === id) : null) || window.currentModalItem;
-    if (!item) return;
-
-    if (item.url) delete uploadedToCommonsMap[item.url.toLowerCase()];
-    if (item.id) delete uploadedToCommonsMap[item.id.toLowerCase()];
+    const item = (typeof DATA !== 'undefined' ? DATA.find(d => String(d.id) === String(id)) : null) || window.currentModalItem;
+    if (id !== undefined && id !== null) {
+      delete uploadedToCommonsMap[String(id).toLowerCase()];
+      delete uploadedToCommonsMap[String(id)];
+    }
+    if (item && item.url) {
+      delete uploadedToCommonsMap[item.url.toLowerCase()];
+      delete uploadedToCommonsMap[item.url];
+    }
     window.saveUploadedToCommonsMap();
 
     if (typeof window.render === 'function') window.render(false);
@@ -3236,15 +3372,14 @@ LAST|P973|"${item.detailUrl}"`;
         console.warn('Clipboard write error:', clipErr);
       }
 
-      // 3. Open Special:Upload in Wikimedia Commons with fields pre-filled
+      // 3. Open Special:Upload in Wikimedia Commons with safe URL length
       updateBtnStatus('Адкрыццё формы на Вікісховішчы...');
-      const uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}&wpUploadDescription=${encodeURIComponent(wikitext)}`;
-      
-      if (uploadTab && !uploadTab.closed) {
-        uploadTab.location.href = uploadUrl;
-      } else {
-        window.open(uploadUrl, '_blank', 'noopener');
+      let uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}`;
+      const encDesc = encodeURIComponent(wikitext);
+      if (encDesc.length < 1500) {
+        uploadUrl += `&wpUploadDescription=${encDesc}`;
       }
+      window.open(uploadUrl, '_blank', 'noopener');
 
       // 4. Reveal confirmation card in modal (DO NOT prematurely mark as uploaded!)
       const confirmBox = document.getElementById('modalUploadConfirmBox');
@@ -3275,7 +3410,7 @@ LAST|P973|"${item.detailUrl}"`;
   /**
    * Action handler for direct upload button in modal
    */
-  window.handleDirectUploadClick = function() {
+  window.handleDirectUploadClick = async function() {
     const item = window.currentModalItem || (typeof currentModalItem !== 'undefined' ? currentModalItem : null);
     if (!item) {
       console.warn('handleDirectUploadClick: current item not found');
@@ -3283,14 +3418,6 @@ LAST|P973|"${item.detailUrl}"`;
         window.showToast('Памылка: экспанат не абраны', '⚠️');
       }
       return;
-    }
-
-    // Pre-open tab synchronously within user click event to prevent popup blockers
-    let uploadTab = null;
-    try {
-      uploadTab = window.open('about:blank', '_blank');
-    } catch (e) {
-      console.warn('Could not pre-open blank tab:', e);
     }
 
     const idx = (window.currentModalImageIndex !== undefined) ? window.currentModalImageIndex : ((typeof currentModalImageIndex !== 'undefined') ? currentModalImageIndex : 0);
@@ -3309,7 +3436,61 @@ LAST|P973|"${item.detailUrl}"`;
       }
     }
 
-    window.uploadDirectToCommons(item, idx, suggestedFilename, wikitext);
+    // Construct Commons Upload URL safely (wpDestFile is pre-filled)
+    let uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}`;
+    const encDesc = encodeURIComponent(wikitext);
+    if (encDesc.length < 1500) {
+      uploadUrl += `&wpUploadDescription=${encDesc}`;
+    }
+
+    const btn = document.getElementById('modalDirectUploadBtn');
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="inline-block animate-spin mr-1">⏳</span> Выконваецца 1-клік загрузка...`;
+    }
+
+    try {
+      // 1. Automatically copy complete 9-language wikitext to clipboard
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(wikitext);
+          if (typeof window.showToast === 'function') {
+            window.showToast('📋 Поўнае 9-моўнае апісанне скапіявана ў буфер абмену!', '📋');
+          }
+        }
+      } catch (clipErr) {
+        console.warn('Clipboard write error:', clipErr);
+      }
+
+      // 2. Open Special:Upload directly in new tab (synchronous within user click, NO about:blank!)
+      window.open(uploadUrl, '_blank', 'noopener');
+
+      // 3. Download the high-res image file to user computer
+      if (typeof window.downloadImageDirect === 'function') {
+        await window.downloadImageDirect();
+      }
+
+      // 4. Reveal confirmation box in modal (never prematurely mark as uploaded!)
+      const confirmBox = document.getElementById('modalUploadConfirmBox');
+      if (confirmBox) {
+        confirmBox.classList.remove('hidden');
+      }
+
+      if (typeof window.showToast === 'function') {
+        window.showToast('🚀 Выява спампавана, форма на Вікісховішчы адкрыта! Выберыце файл і націсніце «Загрузіць».', '🎉');
+      }
+    } catch (err) {
+      console.error('Direct upload flow error:', err);
+      if (typeof window.showToast === 'function') {
+        window.showToast('Памылка: ' + (err.message || err), '❌');
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    }
   };
 
   // Auto-sync with Commons on initial script execution
