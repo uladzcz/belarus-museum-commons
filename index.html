@@ -1489,22 +1489,46 @@
                     ${uploadedInfo.fileTitle} ↗
                   </a>
                 </div>
-                <a href="${uploadedInfo.commonsUrl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(uploadedInfo.fileTitle))}" target="_blank" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold shadow-xs whitespace-nowrap">
-                  Адкрыць файл ↗
-                </a>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <a href="${uploadedInfo.commonsUrl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(uploadedInfo.fileTitle))}" target="_blank" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold shadow-xs whitespace-nowrap">
+                    Адкрыць ↗
+                  </a>
+                  <button type="button" onclick="unmarkAsUploadedToCommons('${item.id}')" class="px-2.5 py-1.5 bg-white/90 hover:bg-white text-stone-600 hover:text-red-600 rounded-lg text-xs font-bold border border-blue-200 transition shadow-xs" title="Зняць адзнаку (калі файл яшчэ не быў загружаны на Вікісховішча)">
+                    ✕ Зняць
+                  </button>
+                </div>
               </div>
             ` : ''}
 
-            <!-- КНОПКА 1-КЛІК НАЎПРОСТАВАЙ ЗАГРУЗКІ -->
+            <!-- КНОПКА 1-КЛІК ЗАГРУЗКІ -->
             <button
               type="button"
               id="modalDirectUploadBtn"
               onclick="handleDirectUploadClick()"
               class="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-700 hover:to-orange-800 text-white rounded-lg font-bold text-xs shadow-sm transition transform active:scale-95 mb-2"
-              title="Аўтаматычна запампаваць выяву і адправіць на Вікісховішча праз Bot Password (на свой страх і рызыку)"
+              title="Спампаваць выяву і адкрыць запоўненую форму на Вікісховішчы (альбо наўпрост праз лакальнага робата)"
             >
-              <span>⚡ 1-Клік наўпроставая загрузка (на свой страх і рызыку)</span>
+              <span>⚡ 1-Клік хуткая загрузка на Вікісховішча</span>
             </button>
+
+            <!-- БЛОК ПАЦВЕРДЖАННЯ ЗАГРУЗКІ -->
+            <div id="modalUploadConfirmBox" class="hidden p-3 bg-amber-50 border border-amber-300 rounded-xl space-y-2 text-xs text-amber-950 mb-2">
+              <div class="font-bold flex items-center gap-1.5 text-amber-900">
+                <span>⏳</span> Файл спампаваны і адкрыты на Вікісховішчы!
+              </div>
+              <p class="text-[11px] leading-relaxed text-amber-900">
+                1. У адкрытай укладцы Вікісховішча націсніце <strong>«Выбраць файл»</strong> і абярыце спампаваны файл.<br>
+                2. Націсніце сінюю кнопку <strong>«Загрузіць файл»</strong> унізе старонкі Вікісховішча.<br>
+                3. Калі загрузка завершана, націсніце кнопку ніжэй, каб пазначыць экспанат у каталогу:
+              </p>
+              <button 
+                type="button" 
+                onclick="markAsUploadedToCommons('${item.id}', document.getElementById('modalSuggestedFilenameDisplay').textContent.replace(/^📁\s*/, '').trim())"
+                class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition shadow-sm flex items-center justify-center gap-1.5"
+              >
+                <span>✅</span> Я завяршыў загрузку (пазначыць у каталогу)
+              </button>
+            </div>
 
             <!-- Прапанаванае імя файла -->
             <div class="bg-white/90 rounded-lg p-2 border border-amber-200 text-xs">
@@ -1629,9 +1653,14 @@
                     ${uploadedInfo.fileTitle} ↗
                   </a>
                 </div>
-                <a href="${uploadedInfo.commonsUrl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(uploadedInfo.fileTitle))}" target="_blank" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold shadow-xs whitespace-nowrap">
-                  Адкрыць файл ↗
-                </a>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <a href="${uploadedInfo.commonsUrl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(uploadedInfo.fileTitle))}" target="_blank" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold shadow-xs whitespace-nowrap">
+                    Адкрыць ↗
+                  </a>
+                  <button type="button" onclick="unmarkAsUploadedToCommons('${item.id}')" class="px-2.5 py-1.5 bg-white/90 hover:bg-white text-stone-600 hover:text-red-600 rounded-lg text-xs font-bold border border-blue-200 transition shadow-xs" title="Зняць адзнаку (калі файл яшчэ не быў загружаны на Вікісховішча)">
+                    ✕ Зняць
+                  </button>
+                </div>
               </div>
             ` : ''}
 
@@ -2188,7 +2217,7 @@ LAST|P973|"${item.detailUrl}"`;
     });
 
     // GEMINI AI INTEGRATION
-    const GEMINI_SYSTEM_INSTRUCTION = "Твая роля: Ты — эксперт па афармленні файлаў для Wikimedia Commons і Вікіпедыі. Твая задача — ствараць дакладныя, гістарычна карэктныя і ідэальна адфарматаваныя шаблоны для загрузкі выяў.\n\n1. Фармат выдачы адказу:\nУвесь код шаблона (напрыклад, {{Artwork}}, {{Information}}, {{Book}}) павінен быць змешчаны ўнутры аднаго блока кода (code block).\nУ першым радку блока кода НЕ ПІШЫ слова wikitext ці іншыя моўныя тэгі, адразу пачынай з {{Artwork.\nПад блокам кода, звычайным тэкстам, ты павінен прапанаваць назву файла.\nПравіла назвы файла: Назва файла ЗАЎСЁДЫ павінна ўтрымліваць дату або год у канцы (напрыклад: Portrait of Ivan Yermachenka (1922).jpg).\n\n2. Моўныя патрабаванні і транслітарацыя тапонімаў (СТРОГАЕ ПРАВІЛА):\nПалі |title= і |description= павінны абавязкова запаўняцца на 9 мовах: {{be}}, {{en}}, {{fr}}, {{de}}, {{es}}, {{it}}, {{pl}}, {{lt}}, {{ru}}.\nСТРОГАЕ ПРАВІЛА ТРАНСЛІТАРАЦЫІ БЕЛАРУСКІХ ТАПОНІМАЎ (ГАРАДОЎ, МЯСЦІН, РЭГІЁНАЎ):\nДля ўсіх заходнееўрапейскіх моў (en, de, fr, es, it) выкарыстоўвай ТОЛЬКІ беларускую лацінку (Інструкцыю па транслітарацыі геаграфічных назваў). КАТЭГАРЫЧНА ЗАБАРОНЕНА выкарыстоўваць рускія ці русіфікаваныя транслітарацыі!\n- Гродна / Гродзенская вобласць: ЗАЎСЁДЫ «Hrodna» альбо «Hrodna Region / Voblasć» для en, de, fr, es, it. КАТЭГАРЫЧНА ЗАБАРОНЕНА пісаць «Grodno» на англійскай, нямецкай, французскай ці іншых мовах! («Grodno» дапускаецца ТОЛЬКІ ў польскай мове: {{pl|Grodno}}).\n- Магілёў: Mahilioŭ (НЕ Mogilev).\n- Віцебск: Viciebsk (НЕ Vitebsk).\n- Гомель: Homieĺ (НЕ Gomel).\n- Брэст: Bresс (НЕ Brest).\n- Навагрудак: Navahrudak (НЕ Novogrudok).\n- Смаргонь: Smarhoń (НЕ Smorgon).\n- Нясвіж: Niaśviž (НЕ Nesvizh).\n- Мядзел: Miadzieĺ (НЕ Myadel).\n- Паставы: Pastavy (НЕ Postavy).\n- Барысаў: Barysaŭ (НЕ Borisov).\n- Орша: Orša (НЕ Orsha).\n- Полацк: Polack, Пінск: Pinsk, Слуцк: Sluck.\nДля польскай (pl) і літоўскай (lt) моў выкарыстоўвай традыцыйныя гістарычныя назвы: {{pl|Grodno}}, {{pl|Połock}}, {{pl|Nowogródek}} / {{lt|Gardinas}}, {{lt|Polockas}}, {{lt|Naugardukas}}.\nДля рускай (ru) мовы выкарыстоўвай традыцыйныя рускія формы (Гродно, Могилёв, Полоцк).\nРолі і прафесіі ў параметрах (напрыклад, у полі |artist=) пішы толькі па-англійску (напрыклад: (lithographer), а не (літограф)).\nНе выкарыстоўвай тлусты шрыфт (''') унутры моўных шаблонаў у полі title (напрыклад, пішы {{be|Партрэт...}}, а не {{be|'''Партрэт...'''}}), калі карыстальнік не папрасіў пра іншае.\n\n3. Сінтаксіс і шаблоны Wikimedia Commons:\nПамер: Ніколі не пішы памеры звычайным тэкстам. Заўсёды выкарыстоўвай шаблон: {{Size|unit=cm|height=...|width=...}} або unit=mm.\nТэхніка і матэрыял: Выкарыстоўвай шаблон {{Technique}} толькі з англійскімі тэрмінамі. Прыклад: {{technique|lithography|paper}} або {{technique|painting|on=birch burl}}.\nУстанова: Выкарыстоўвай шаблон {{Institution:Name in English}}. Усе назвы ўстаноў унутры гэтага шаблона павінны быць строга па-англійску.\nКрыніцы: Для афармлення крыніц выкарыстоўвай ТОЛЬКІ міжнародныя шаблоны {{Cite web}}, {{Cite journal}}, {{Cite book}}. Забаронена выкарыстоўваць лакальныя руска/беларускамоўныя шаблоны кшталту {{артыкул}} ці {{книга}}.\nВыразкі (Cropped images): Калі выява з'яўляецца выразкай з іншага файла, ЗАЎСЁДЫ дадавай пад асноўным шаблонам радок: {{Extracted from|1=Назва зыходнага файла.pdf}} (або .jpg).\nЗабароненыя параметры: У шаблонах {{Artwork}} і {{Information}} не існуе поля |depicted people = {{depicted person|...}}. Не выкарыстоўвай яго. Калі трэба, пералічвай асоб у полі description або дадавай адпаведныя катэгорыі.\n\n4. Барацьба з галюцынацыямі і гістарычная дакладнасць (ВЕЛЬМІ ВАЖНА):\nНе прыдумляй факты! Апісвай толькі тое, што дакладна бачна на выяве або прама сказана ў крыніцы.\nНе дадавай людзей, якіх няма на фота (напрыклад, не пішы, што там ёсць пэўны чалавек, калі няма 100% упэўненасці або пацверджання ад карыстальніка).\nНе выпраўляй «памылкі» аўтараў арыгінала самастойна. Калі на вокладцы напісана «Т. Самохіна», пішы «Т. Самохіна» (можаш дадаць гістарычную даведку асобным сказам, але не змяняй арыгінальны тэкст дакумента).\nУважліва стаўся да гістарычных імёнаў (напрыклад, Olgierd, а не Algirdas у не-літоўскіх апісаннях; Staal, а не Stahl і г.д.).\n\n5. Несвабодныя файлы (Fair Use):\nКалі карыстальнік просіць аформіць несвабодны файл (які ахоўваецца аўтарскім правам), выкарыстоўвай ТОЛЬКІ наступны беларускамоўны шаблон без змен у структуры:\n\n{{Несвабодны файл\n|апісанне      = [Дэталёвае апісанне]\n|крыніца       = [Крыніца / спасылка]\n|час стварэння = [Дата / год]\n|аўтар         = [Аўтар / Праваўладальнік]\n|частка        = [Цалкам ці фрагмент]\n|разрозненне   = Нізкае (паменшанае), дастатковае для ідэнтыфікацыі.\n}}\n{{Несвабодны файл/АДВ\n| артыкул      = [Назва артыкула ў Вікіпедыі]\n| мэта         = Візуальная ідэнтыфікацыя [аб'екта/выдання] ў артыкуле пра яго.\n| заменнасць   = Свабоднай замены няма, бо твор ахоўваецца аўтарскім правам.\n| іншае        = Выкарыстанне выявы ў нізкай раздзяляльнасці не ўплывае на камерцыйную каштоўнасць арыгінала.\n}}\n\n6. Катэгорыі і ліцэнзіі:\nЗаўсёды дадавай максімальна дакладныя ліцэнзіі. Для дакументаў Расійскай імперыі выкарыстоўвай {{PD-RusEmpire}}. Для Літвы ўлічвай {{PD-Lithuania-anon}} і {{PD-LT-exempt}}.\nЗаўсёды дадавай блок катэгорый у канцы. Катэгорыі павінны быць на англійскай мове. Улічвай катэгорыі паводле года стварэння, тыпу аб'екта, асобы і геаграфіі.";
+    const GEMINI_SYSTEM_INSTRUCTION = "Твая роля: Ты — эксперт па афармленні файлаў для Wikimedia Commons і Вікіпедыі. Твая задача — ствараць дакладныя, гістарычна карэктныя і ідэальна адфарматаваныя шаблоны для загрузкі выяў.\n\n1. Фармат выдачы адказу:\nУвесь код шаблона (напрыклад, {{Artwork}}, {{Information}}, {{Book}}) павінен быць змешчаны ўнутры аднаго блока кода (code block).\nУ першым радку блока кода НЕ ПІШЫ слова wikitext ці іншыя моўныя тэгі, адразу пачынай з {{Artwork.\nПад блокам кода, звычайным тэкстам, ты павінен прапанаваць назву файла.\nПравіла назвы файла: Назва файла павінна быць на англійскай мове, словы раздзяляй выразнымі прабеламі. Калі пасля назвы твора ідзе назва музея альбо горад, абавязкова аддзяляй іх коскай і прабелам (напрыклад: Tapestry Assumption of the Blessed Virgin Mary, Hrodna Museum (1601-1610).jpg). КАТЭГАРЫЧНА ЗАБАРОНЕНА зліваць словы разам (напрыклад: MaryHrodna — грубая памылка, трэба «Mary, Hrodna» альбо «Mary Hrodna»). Назва файла ЗАЎСЁДЫ павінна ўтрымліваць дату або год у дужках у канцы.\n\n2. Моўныя патрабаванні і транслітарацыя тапонімаў (СТРОГАЕ ПРАВІЛА):\nПалі |title= і |description= павінны абавязкова запаўняцца на 9 мовах: {{be}}, {{en}}, {{fr}}, {{de}}, {{es}}, {{it}}, {{pl}}, {{lt}}, {{ru}}.\nСТРОГАЕ ПРАВІЛА ТРАНСЛІТАРАЦЫІ БЕЛАРУСКІХ ТАПОНІМАЎ (ГАРАДОЎ, МЯСЦІН, РЭГІЁНАЎ):\nДля ўсіх заходнееўрапейскіх моў (en, de, fr, es, it) выкарыстоўвай ТОЛЬКІ беларускую лацінку (Інструкцыю па транслітарацыі геаграфічных назваў). КАТЭГАРЫЧНА ЗАБАРОНЕНА выкарыстоўваць рускія ці русіфікаваныя транслітарацыі!\n- Гродна / Гродзенская вобласць: ЗАЎСЁДЫ «Hrodna» альбо «Hrodna Region / Voblasć» для en, de, fr, es, it. КАТЭГАРЫЧНА ЗАБАРОНЕНА пісаць «Grodno» на англійскай, нямецкай, французскай ці іншых мовах! («Grodno» дапускаецца ТОЛЬКІ ў польскай мове: {{pl|Grodno}}).\n- Магілёў: Mahilioŭ (НЕ Mogilev).\n- Віцебск: Viciebsk (НЕ Vitebsk).\n- Гомель: Homieĺ (НЕ Gomel).\n- Брэст: Bresс (НЕ Brest).\n- Навагрудак: Navahrudak (НЕ Novogrudok).\n- Смаргонь: Smarhoń (НЕ Smorgon).\n- Нясвіж: Niaśviž (НЕ Nesvizh).\n- Мядзел: Miadzieĺ (НЕ Myadel).\n- Паставы: Pastavy (НЕ Postavy).\n- Барысаў: Barysaŭ (НЕ Borisov).\n- Орша: Orša (НЕ Orsha).\n- Полацк: Polack, Пінск: Pinsk, Слуцк: Sluck.\nДля польскай (pl) і літоўскай (lt) моў выкарыстоўвай традыцыйныя гістарычныя назвы: {{pl|Grodno}}, {{pl|Połock}}, {{pl|Nowogródek}} / {{lt|Gardinas}}, {{lt|Polockas}}, {{lt|Naugardukas}}.\nДля рускай (ru) мовы выкарыстоўвай традыцыйныя рускія формы (Гродно, Могилёв, Полоцк).\nРолі і прафесіі ў параметрах (напрыклад, у полі |artist=) пішы толькі па-англійску (напрыклад: (lithographer), а не (літограф)).\nНе выкарыстоўвай тлусты шрыфт (''') унутры моўных шаблонаў у полі title (напрыклад, пішы {{be|Партрэт...}}, а не {{be|'''Партрэт...'''}}), калі карыстальнік не папрасіў пра іншае.\n\n3. Сінтаксіс і шаблоны Wikimedia Commons:\nПамер: Ніколі не пішы памеры звычайным тэкстам. Заўсёды выкарыстоўвай шаблон: {{Size|unit=cm|height=...|width=...}} або unit=mm.\nТэхніка і матэрыял: Выкарыстоўвай шаблон {{Technique}} толькі з англійскімі тэрмінамі. Прыклад: {{technique|lithography|paper}} або {{technique|painting|on=birch burl}}.\nУстанова: Выкарыстоўвай шаблон {{Institution:Name in English}}. Усе назвы ўстаноў унутры гэтага шаблона павінны быць строга па-англійску.\nКрыніцы: Для афармлення крыніц выкарыстоўвай ТОЛЬКІ міжнародныя шаблоны {{Cite web}}, {{Cite journal}}, {{Cite book}}. Забаронена выкарыстоўваць лакальныя руска/беларускамоўныя шаблоны кшталту {{артыкул}} ці {{книга}}.\nВыразкі (Cropped images): Калі выява з'яўляецца выразкай з іншага файла, ЗАЎСЁДЫ дадавай пад асноўным шаблонам радок: {{Extracted from|1=Назва зыходнага файла.pdf}} (або .jpg).\nЗабароненыя параметры: У шаблонах {{Artwork}} і {{Information}} не існуе поля |depicted people = {{depicted person|...}}. Не выкарыстоўвай яго. Калі трэба, пералічвай асоб у полі description або дадавай адпаведныя катэгорыі.\n\n4. Барацьба з галюцынацыямі і гістарычная дакладнасць (ВЕЛЬМІ ВАЖНА):\nНе прыдумляй факты! Апісвай толькі тое, што дакладна бачна на выяве або прама сказана ў крыніцы.\nНе дадавай людзей, якіх няма на фота (напрыклад, не пішы, што там ёсць пэўны чалавек, калі няма 100% упэўненасці або пацверджання ад карыстальніка).\nНе выпраўляй «памылкі» аўтараў арыгінала самастойна. Калі на вокладцы напісана «Т. Самохіна», пішы «Т. Самохіна» (можаш дадаць гістарычную даведку асобным сказам, але не змяняй арыгінальны тэкст дакумента).\nУважліва стаўся да гістарычных імёнаў (напрыклад, Olgierd, а не Algirdas у не-літоўскіх апісаннях; Staal, а не Stahl і г.д.).\n\n5. Несвабодныя файлы (Fair Use):\nКалі карыстальнік просіць аформіць несвабодны файл (які ахоўваецца аўтарскім правам), выкарыстоўвай ТОЛЬКІ наступны беларускамоўны шаблон без змен у структуры:\n\n{{Несвабодны файл\n|апісанне      = [Дэталёвае апісанне]\n|крыніца       = [Крыніца / спасылка]\n|час стварэння = [Дата / год]\n|аўтар         = [Аўтар / Праваўладальнік]\n|частка        = [Цалкам ці фрагмент]\n|разрозненне   = Нізкае (паменшанае), дастатковае для ідэнтыфікацыі.\n}}\n{{Несвабодны файл/АДВ\n| артыкул      = [Назва артыкула ў Вікіпедыі]\n| мэта         = Візуальная ідэнтыфікацыя [аб'екта/выдання] ў артыкуле пра яго.\n| заменнасць   = Свабоднай замены няма, бо твор ахоўваецца аўтарскім правам.\n| іншае        = Выкарыстанне выявы ў нізкай раздзяляльнасці не ўплывае на камерцыйную каштоўнасць арыгінала.\n}}\n\n6. Катэгорыі і ліцэнзіі:\nЗаўсёды дадавай максімальна дакладныя ліцэнзіі. Для дакументаў Расійскай імперыі выкарыстоўвай {{PD-RusEmpire}}. Для Літвы ўлічвай {{PD-Lithuania-anon}} і {{PD-LT-exempt}}.\nЗаўсёды дадавай блок катэгорый у канцы. Катэгорыі павінны быць на англійскай мове. Улічвай катэгорыі паводле года стварэння, тыпу аб'екта, асобы і геаграфіі.";
 
     async function getAvailableGeminiModels(apiKey) {
       try {
@@ -2371,7 +2400,7 @@ LAST|P973|"${item.detailUrl}"`;
 - Выява: выява нумар ${currentModalImageIndex + 1} з ${totalImgs}
 - Спасылка на файл выявы: ${activeImg}
 
-ВАЖНА: На англійскай, нямецкай, французскай, іспанскай, італьянскай мовах для Гродна пішы выключна форму Hrodna (не Grodno!). Код шаблона размясці ўнутры блока кода (code block) без лішняга слова wikitext унутры.
+ВАЖНА: На англійскай, нямецкай, французскай, іспанскай, італьянскай мовах для Гродна пішы выключна форму Hrodna (не Grodno!). Код шаблона размясці ўнутры блока кода (code block) без лішняга слова wikitext унутры. У назве файла абавязкова аддзяляй назву музея коскай і прабелам (напрыклад: «, Hrodna Museum»), не злівай словы разам!
 `;
 
       try {
@@ -2573,9 +2602,18 @@ LAST|P973|"${item.detailUrl}"`;
           }
         }
 
-        // Also enforce Hrodna in suggestedName
+        // Also enforce Hrodna in suggestedName and fix any merged words
         if (suggestedName) {
-          suggestedName = suggestedName.replace(/Grodno/gi, 'Hrodna').replace(/Grodna/gi, 'Hrodna');
+          // Replace Grodno/Grodna with Hrodna
+          suggestedName = suggestedName.replaceAll('Grodno', 'Hrodna').replaceAll('Grodna', 'Hrodna').replaceAll('grodno', 'hrodna');
+          
+          // Split joined words if title accidentally merged with museum or location
+          // e.g. "MaryHrodna" -> "Mary, Hrodna", "MuseumHrodna" -> "Museum, Hrodna"
+          suggestedName = suggestedName.replace(/([a-zA-Z])Hrodna/g, '$1, Hrodna');
+          suggestedName = suggestedName.replace(/([a-zA-Z])Museum/g, '$1 Museum');
+          suggestedName = suggestedName.replace(/([a-zA-Z])\(/g, '$1 (');
+          suggestedName = suggestedName.replace(/,\s*,/g, ',');
+          suggestedName = suggestedName.replace(/\s+/g, ' ').trim();
         }
 
         if (totalImgs > 1 && suggestedName && !suggestedName.includes('(' + (currentModalImageIndex + 1) + ')')) {
@@ -2591,12 +2629,12 @@ LAST|P973|"${item.detailUrl}"`;
           suggestedName = fallback.suggestedFilename;
         }
 
-        // Clean forbidden characters
+        // Clean forbidden characters (keeping letters, numbers, spaces, commas, periods, hyphens, and parentheses)
         const forbiddenChars = ['[', ']', ', ', '|', '#', '/', ':', '<', '>', '*', '?', String.fromCharCode(92)];
         for (const ch of forbiddenChars) {
           suggestedName = suggestedName.replaceAll(ch, '');
         }
-        suggestedName = suggestedName.split(' ').filter(Boolean).join(' ');
+        suggestedName = suggestedName.replace(/\s+/g, ' ').trim();
 
         // Update UI
         const uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedName)}&wpUploadDescription=${encodeURIComponent(wikitext)}`;
@@ -3084,6 +3122,49 @@ LAST|P973|"${item.detailUrl}"`;
    * @param {string} suggestedFilename - suggested filename on Commons
    * @param {string} wikitext - full artwork wikitext
    */
+  window.markAsUploadedToCommons = function(id, filename) {
+    const item = (typeof DATA !== 'undefined' ? DATA.find(d => d.id === id) : null) || window.currentModalItem;
+    if (!item) return;
+
+    let cleanName = (filename || '').replace(/^📁\s*/, '').trim();
+    if (!cleanName) cleanName = item.nameRu || 'Exhibit';
+    const fileTitle = cleanName.startsWith('File:') ? cleanName : `File:${cleanName}`;
+    const fileUrl = `https://commons.wikimedia.org/wiki/${encodeURIComponent(fileTitle)}`;
+    const fileInfo = {
+      fileTitle: fileTitle,
+      fileUrl: fileUrl,
+      commonsUrl: fileUrl,
+      uploadedAt: new Date().toISOString()
+    };
+
+    if (item.url) uploadedToCommonsMap[item.url.toLowerCase()] = fileInfo;
+    if (item.id) uploadedToCommonsMap[item.id.toLowerCase()] = fileInfo;
+    window.saveUploadedToCommonsMap();
+
+    if (typeof window.render === 'function') window.render(false);
+    if (typeof window.updateModalCommonsAndImage === 'function') window.updateModalCommonsAndImage();
+
+    if (typeof window.showToast === 'function') {
+      window.showToast('🎉 Экспанат паспяхова пазначаны як загружаны!', '✅');
+    }
+  };
+
+  window.unmarkAsUploadedToCommons = function(id) {
+    const item = (typeof DATA !== 'undefined' ? DATA.find(d => d.id === id) : null) || window.currentModalItem;
+    if (!item) return;
+
+    if (item.url) delete uploadedToCommonsMap[item.url.toLowerCase()];
+    if (item.id) delete uploadedToCommonsMap[item.id.toLowerCase()];
+    window.saveUploadedToCommonsMap();
+
+    if (typeof window.render === 'function') window.render(false);
+    if (typeof window.updateModalCommonsAndImage === 'function') window.updateModalCommonsAndImage();
+
+    if (typeof window.showToast === 'function') {
+      window.showToast('Адзнака Вікісховішча знятая', 'ℹ️');
+    }
+  };
+
   window.uploadDirectToCommons = async function(item, imageIndex, suggestedFilename, wikitext, uploadTab = null) {
     const btn = document.getElementById('modalDirectUploadBtn');
     const originalHtml = btn ? btn.innerHTML : '';
@@ -3096,6 +3177,47 @@ LAST|P973|"${item.detailUrl}"`;
 
       const creds = window.getWikimediaCredentials();
 
+      // Check if local Python bot server is running at http://127.0.0.1:5000
+      let localBotUploaded = false;
+      if (creds.username && creds.password) {
+        try {
+          updateBtnStatus("Праверка лакальнага робата (127.0.0.1:5000)...");
+          const pingResp = await fetch('http://127.0.0.1:5000/ping', { method: 'GET', signal: AbortSignal.timeout(1000) });
+          if (pingResp.ok) {
+            updateBtnStatus("Наўпроставая загрузка праз лакальнага робата...");
+            const imgs = (item.images && item.images.length > 0) ? item.images : [item.imgOriginal || item.imgMedium || item.imgThumb];
+            const targetImgUrl = imgs[imageIndex] || imgs[0];
+            const uploadResp = await fetch('http://127.0.0.1:5000/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: item.id,
+                imageUrl: targetImgUrl,
+                suggestedFilename: suggestedFilename,
+                wikitext: wikitext,
+                username: creds.username,
+                password: creds.password
+              })
+            });
+            const uploadRes = await uploadResp.json();
+            if (uploadRes.success) {
+              localBotUploaded = true;
+              if (uploadTab && !uploadTab.closed) uploadTab.close();
+              window.markAsUploadedToCommons(item.id, uploadRes.fileTitle || suggestedFilename);
+              if (typeof window.showToast === 'function') {
+                window.showToast('🎉 Робат паспяхова загрузіў файл на Вікісховішча!', '🚀');
+              }
+              return;
+            } else if (uploadRes.error) {
+              throw new Error(uploadRes.error);
+            }
+          }
+        } catch (botErr) {
+          console.warn('Local bot bridge unavailable or failed, falling back to browser flow:', botErr);
+        }
+      }
+
+      // Standard Assisted Upload Flow:
       // 1. Download image directly to user's computer with target filename
       updateBtnStatus("Спампоўка выявы на камп'ютар...");
       if (typeof window.downloadImageDirect === 'function') {
@@ -3114,24 +3236,7 @@ LAST|P973|"${item.detailUrl}"`;
         console.warn('Clipboard write error:', clipErr);
       }
 
-      // 3. Mark in tracking store as uploaded
-      const fileTitle = `File:${suggestedFilename}`;
-      const fileUrl = `https://commons.wikimedia.org/wiki/${encodeURIComponent(fileTitle)}`;
-      const fileInfo = {
-        fileTitle: fileTitle,
-        fileUrl: fileUrl,
-        commonsUrl: fileUrl,
-        uploadedAt: new Date().toISOString()
-      };
-
-      if (item.url) uploadedToCommonsMap[item.url.toLowerCase()] = fileInfo;
-      if (item.id) uploadedToCommonsMap[item.id.toLowerCase()] = fileInfo;
-      window.saveUploadedToCommonsMap();
-
-      if (typeof window.render === 'function') window.render(false);
-      if (typeof window.updateModalCommonsAndImage === 'function') window.updateModalCommonsAndImage();
-
-      // 4. Open Special:Upload in Wikimedia Commons with fields pre-filled
+      // 3. Open Special:Upload in Wikimedia Commons with fields pre-filled
       updateBtnStatus('Адкрыццё формы на Вікісховішчы...');
       const uploadUrl = `https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=${encodeURIComponent(suggestedFilename)}&wpUploadDescription=${encodeURIComponent(wikitext)}`;
       
@@ -3141,8 +3246,14 @@ LAST|P973|"${item.detailUrl}"`;
         window.open(uploadUrl, '_blank', 'noopener');
       }
 
+      // 4. Reveal confirmation card in modal (DO NOT prematurely mark as uploaded!)
+      const confirmBox = document.getElementById('modalUploadConfirmBox');
+      if (confirmBox) {
+        confirmBox.classList.remove('hidden');
+      }
+
       if (typeof window.showToast === 'function') {
-        window.showToast('🚀 Выява спампавана, апісанне падрыхтавана! Перацягніце файл і націсніце «Загрузіць».', '🎉');
+        window.showToast('🚀 Выява спампавана, форма на Вікісховішчы адкрыта! Выберыце файл і націсніце «Загрузіць».', '🎉');
       }
 
     } catch (err) {
