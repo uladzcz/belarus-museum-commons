@@ -206,12 +206,20 @@
           <p>Ключ захоўваецца <strong>выключна лакальна</strong> ў сховішчы вашага браўзера (<code class="font-mono bg-white px-1 rounded border border-indigo-200">localStorage</code>) і перадаецца наўпрост у афіцыйны API Google па HTTPS. Ніякія іншыя серверы не маюць да яго доступу.</p>
         </div>
         <div>
-          <label class="block font-bold text-stone-800 uppercase tracking-wider mb-1 text-[10px]">Мадэль Gemini:</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block font-bold text-stone-800 uppercase tracking-wider text-[10px]">Мадэль Gemini:</label>
+            <button type="button" onclick="refreshGeminiModelsList()" class="text-indigo-600 hover:text-indigo-800 font-semibold text-[10px] flex items-center gap-1">
+              <span>🔄 Абнавіць спіс</span>
+            </button>
+          </div>
           <select id="geminiModelSelect" class="w-full p-2 bg-stone-50 border border-stone-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-            <option value="gemini-3.6-flash">Gemini 3.6 Flash (Хуткая, актуальная — рэкамендуецца ⚡)</option>
+            <option value="auto">⭐ Аўта-выбар (рэкамендуецца: аўта-пераключэнне пры перагрузцы)</option>
+            <option value="gemini-2.0-flash">Gemini 2.0 Flash ⚡</option>
+            <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
             <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Глыбокая апрацоўка)</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
           </select>
+          <p id="geminiModelStatusHint" class="text-[10px] text-stone-500 mt-1 italic"></p>
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
@@ -225,6 +233,7 @@
               type="password" 
               id="geminiApiKeyInput" 
               placeholder="Устаўце ключ AIzaSy..." 
+              onchange="refreshGeminiModelsList()"
               class="w-full p-2.5 pr-10 bg-stone-50 border border-stone-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             >
             <button type="button" onclick="toggleGeminiKeyVisibility()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs" title="Паказаць/схаваць">
@@ -1076,18 +1085,29 @@
 
             <!-- Кнопкі -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <!-- Крок 1: Спампаваць актыўную выяву -->
-              <a 
-                id="modalDownloadBtn"
-                href="${cData.currentImgUrl}" 
-                target="_blank" 
-                download="${cData.suggestedFilename}"
-                onclick="showToast('Выява адкрываецца/спампоўваецца!', '📥')"
-                class="flex items-center justify-center gap-2 px-3.5 py-2.5 bg-white hover:bg-stone-100 text-stone-900 text-xs font-bold rounded-lg border border-stone-300 shadow-xs transition group text-center"
-              >
-                <span>📥 1. Спампаваць выяву ${totalImgs > 1 ? `(${currentModalImageIndex + 1} з ${totalImgs})` : ''}</span>
-                <span class="text-[10px] text-stone-400 font-normal group-hover:text-stone-600">(.JPG) ↗</span>
-              </a>
+              <!-- Крок 1: Спампаваць актыўную выяву на камп'ютар + кнопка адкрыць у асобнай укладцы -->
+              <div class="flex items-center gap-1.5">
+                <button 
+                  type="button"
+                  id="modalDownloadBtn"
+                  onclick="downloadImageDirect()"
+                  class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white hover:bg-stone-100 text-stone-900 text-xs font-bold rounded-lg border border-stone-300 shadow-xs transition text-center group"
+                  title="Спампаваць файл непасрэдна на ваш камп'ютар"
+                >
+                  <span>📥 1. Спампаваць выяву ${totalImgs > 1 ? `(${currentModalImageIndex + 1} з ${totalImgs})` : ''}</span>
+                  <span class="text-[10px] text-stone-400 font-normal">(.JPG)</span>
+                </button>
+                <a 
+                  id="modalOpenNewTabBtn"
+                  href="${cData.currentImgUrl}" 
+                  target="_blank" 
+                  rel="noopener"
+                  class="px-2.5 py-2.5 bg-white hover:bg-stone-100 text-stone-700 hover:text-stone-900 text-xs font-bold rounded-lg border border-stone-300 shadow-xs transition flex items-center justify-center"
+                  title="Адкрыць выяву ў новай укладцы браўзера ↗"
+                >
+                  <span>🔍 ↗</span>
+                </a>
+              </div>
 
               <!-- Крок 2: Адкрыць Вікісховішча -->
               <a 
@@ -1179,18 +1199,29 @@
             <!-- ПАДЗЕЛЕНЫЯ ДВЕ КНОПКІ (БЕЗ БЛАКАВАННЯ БРАЎЗЕРАМ) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
               
-              <!-- Крок 1: Спампаваць актыўную выяву -->
-              <a 
-                id="modalDownloadBtn"
-                href="${cData.currentImgUrl}" 
-                target="_blank" 
-                download="${cData.suggestedFilename}"
-                onclick="showToast('Выява адкрываецца/спампоўваецца!', '📥')"
-                class="flex items-center justify-center gap-2 px-3.5 py-2.5 bg-white hover:bg-stone-100 text-stone-900 text-xs font-bold rounded-lg border border-stone-300 shadow-xs transition group text-center"
-              >
-                <span>📥 1. Спампаваць выяву ${totalImgs > 1 ? `(${currentModalImageIndex + 1} з ${totalImgs})` : ''}</span>
-                <span class="text-[10px] text-stone-400 font-normal group-hover:text-stone-600">(.JPG) ↗</span>
-              </a>
+              <!-- Крок 1: Спампаваць актыўную выяву на камп'ютар + кнопка адкрыць у асобнай укладцы -->
+              <div class="flex items-center gap-1.5">
+                <button 
+                  type="button"
+                  id="modalDownloadBtn"
+                  onclick="downloadImageDirect()"
+                  class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white hover:bg-stone-100 text-stone-900 text-xs font-bold rounded-lg border border-stone-300 shadow-xs transition text-center group"
+                  title="Спампаваць файл непасрэдна на ваш камп'ютар"
+                >
+                  <span>📥 1. Спампаваць выяву ${totalImgs > 1 ? `(${currentModalImageIndex + 1} з ${totalImgs})` : ''}</span>
+                  <span class="text-[10px] text-stone-400 font-normal">(.JPG)</span>
+                </button>
+                <a 
+                  id="modalOpenNewTabBtn"
+                  href="${cData.currentImgUrl}" 
+                  target="_blank" 
+                  rel="noopener"
+                  class="px-2.5 py-2.5 bg-white hover:bg-stone-100 text-stone-700 hover:text-stone-900 text-xs font-bold rounded-lg border border-stone-300 shadow-xs transition flex items-center justify-center"
+                  title="Адкрыць выяву ў новай укладцы браўзера ↗"
+                >
+                  <span>🔍 ↗</span>
+                </a>
+              </div>
 
               <!-- Крок 2: Адкрыць Вікісховішча з ужо запоўненымі параметрамі -->
               <a 
@@ -1324,6 +1355,79 @@
       if (txt) {
         navigator.clipboard.writeText(txt.value);
         showToast('Вікітэкст скапіяваны ў буфер абмену!', '📋');
+      }
+    };
+
+    window.downloadImageDirect = async function() {
+      if (!currentModalItem) return;
+      const cData = buildCommonsData(currentModalItem, currentModalImageIndex);
+      const url = cData.currentImgUrl;
+      
+      let filename = cData.suggestedFilename;
+      const fnDisplay = document.getElementById('modalSuggestedFilenameDisplay');
+      if (fnDisplay && fnDisplay.textContent.startsWith('📁 ')) {
+        filename = fnDisplay.textContent.substring(2).trim();
+      }
+
+      const btn = document.getElementById('modalDownloadBtn');
+      const originalHtml = btn ? btn.innerHTML : '';
+
+      try {
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = `<span class="inline-block animate-spin mr-1">⏳</span> Спампоўванне...`;
+        }
+        showToast("Пачынаецца спампоўванне файла...", '⏳');
+
+        let blob = null;
+        try {
+          // weserv proxy allows CORS so browser can download directly with filename
+          const proxyUrl = 'https://images.weserv.nl/?url=' + encodeURIComponent(url);
+          const resp = await fetch(proxyUrl);
+          if (resp.ok) {
+            blob = await resp.blob();
+          }
+        } catch (proxyErr) {
+          console.warn('Proxy fetch error, trying direct fetch:', proxyErr);
+        }
+
+        if (!blob) {
+          try {
+            const resp = await fetch(url);
+            if (resp.ok) blob = await resp.blob();
+          } catch (directErr) {
+            console.warn('Direct fetch error:', directErr);
+          }
+        }
+
+        if (blob) {
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+          showToast("Выява паспяхова спампавана!", '✅');
+        } else {
+          const a = document.createElement('a');
+          a.href = url;
+          a.target = '_blank';
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          showToast("Адкрыта выява для захавання", 'ℹ️');
+        }
+      } catch (err) {
+        console.error('Download error:', err);
+        window.open(url, '_blank');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
       }
     };
 
@@ -1517,21 +1621,87 @@ LAST|P973|"${item.detailUrl}"`;
     // GEMINI AI INTEGRATION
     const GEMINI_SYSTEM_INSTRUCTION = "Твая роля: Ты — эксперт па афармленні файлаў для Wikimedia Commons і Вікіпедыі. Твая задача — ствараць дакладныя, гістарычна карэктныя і ідэальна адфарматаваныя шаблоны для загрузкі выяў.\n\n1. Фармат выдачы адказу:\nУвесь код шаблона (напрыклад, {{Artwork}}, {{Information}}, {{Book}}) павінен быць змешчаны ўнутры аднаго блока кода (code block).\nПад блокам кода, звычайным тэкстам, ты павінен прапанаваць назву файла.\nПравіла назвы файла: Назва файла ЗАЎСЁДЫ павінна ўтрымліваць дату або год у канцы (напрыклад: Portrait of Ivan Yermachenka (1922).jpg).\n\n2. Моўныя патрабаванні:\nПалі |title= і |description= павінны абавязкова запаўняцца на 9 мовах: {{be}}, {{en}}, {{fr}}, {{de}}, {{es}}, {{it}}, {{pl}}, {{lt}}, {{ru}}.\nТранслітарацыя тапонімаў: Для перадачы беларускіх геаграфічных назваў на англійскую, французскую, нямецкую, іспанскую і італьянскую мовы выкарыстоўвай беларускую лацінку (напрыклад: Polack, Viliejka, Stan Kruĺ). Не выкарыстоўвай рускую транслітарацыю.\nДля польскай (pl) і літоўскай (lt) моў выкарыстоўвай традыцыйныя гістарычныя назвы (напрыклад: Połock, Stańkról / Polockas, Stan Krulis).\nРолі і прафесіі ў параметрах (напрыклад, у полі |artist=) пішы толькі па-англійску (напрыклад: (lithographer), а не (літограф)).\nНе выкарыстоўвай тлусты шрыфт (''') унутры моўных шаблонаў у полі title (напрыклад, пішы {{be|Партрэт...}}, а не {{be|'''Партрэт...'''}}), калі карыстальнік не папрасіў пра іншае.\n\n3. Сінтаксіс і шаблоны Wikimedia Commons:\nПамер: Ніколі не пішы памеры звычайным тэкстам. Заўсёды выкарыстоўвай шаблон: {{Size|unit=cm|height=...|width=...}} або unit=mm.\nТэхніка і матэрыял: Выкарыстоўвай шаблон {{Technique}} толькі з англійскімі тэрмінамі. Прыклад: {{technique|lithography|paper}} або {{technique|painting|on=birch burl}}.\nУстанова: Выкарыстоўвай шаблон {{Institution:Name in English}}. Усе назвы ўстаноў унутры гэтага шаблона павінны быць строга па-англійску.\nКрыніцы: Для афармлення крыніц выкарыстоўвай ТОЛЬКІ міжнародныя шаблоны {{Cite web}}, {{Cite journal}}, {{Cite book}}. Забаронена выкарыстоўваць лакальныя руска/беларускамоўныя шаблоны кшталту {{артыкул}} ці {{книга}}.\nВыразкі (Cropped images): Калі выява з'яўляецца выразкай з іншага файла, ЗАЎСЁДЫ дадавай пад асноўным шаблонам радок: {{Extracted from|1=Назва зыходнага файла.pdf}} (або .jpg).\nЗабароненыя параметры: У шаблонах {{Artwork}} і {{Information}} не існуе поля |depicted people = {{depicted person|...}}. Не выкарыстоўвай яго. Калі трэба, пералічвай асоб у полі description або дадавай адпаведныя катэгорыі.\n\n4. Барацьба з галюцынацыямі і гістарычная дакладнасць (ВЕЛЬМІ ВАЖНА):\nНе прыдумляй факты! Апісвай толькі тое, што дакладна бачна на выяве або прама сказана ў крыніцы.\nНе дадавай людзей, якіх няма на фота (напрыклад, не пішы, што там ёсць пэўны чалавек, калі няма 100% упэўненасці або пацверджання ад карыстальніка).\nНе выпраўляй «памылкі» аўтараў арыгінала самастойна. Калі на вокладцы напісана «Т. Самохіна», пішы «Т. Самохіна» (можаш дадаць гістарычную даведку асобным сказам, але не змяняй арыгінальны тэкст дакумента).\nУважліва стаўся да гістарычных імёнаў (напрыклад, Olgierd, а не Algirdas у не-літоўскіх апісаннях; Staal, а не Stahl і г.д.).\n\n5. Несвабодныя файлы (Fair Use):\nКалі карыстальнік просіць аформіць несвабодны файл (які ахоўваецца аўтарскім правам), выкарыстоўвай ТОЛЬКІ наступны беларускамоўны шаблон без змен у структуры:\n\n{{Несвабодны файл\n|апісанне      = [Дэталёвае апісанне]\n|крыніца       = [Крыніца / спасылка]\n|час стварэння = [Дата / год]\n|аўтар         = [Аўтар / Праваўладальнік]\n|частка        = [Цалкам ці фрагмент]\n|разрозненне   = Нізкае (паменшанае), дастатковае для ідэнтыфікацыі.\n}}\n{{Несвабодны файл/АДВ\n| артыкул      = [Назва артыкула ў Вікіпедыі]\n| мэта         = Візуальная ідэнтыфікацыя [аб'екта/выдання] ў артыкуле пра яго.\n| заменнасць   = Свабоднай замены няма, бо твор ахоўваецца аўтарскім правам.\n| іншае        = Выкарыстанне выявы ў нізкай раздзяляльнасці не ўплывае на камерцыйную каштоўнасць арыгінала.\n}}\n\n6. Катэгорыі і ліцэнзіі:\nЗаўсёды дадавай максімальна дакладныя ліцэнзіі. Для дакументаў Расійскай імперыі выкарыстоўвай {{PD-RusEmpire}}. Для Літвы ўлічвай {{PD-Lithuania-anon}} і {{PD-LT-exempt}}.\nЗаўсёды дадавай блок катэгорый у канцы. Катэгорыі павінны быць на англійскай мове. Улічвай катэгорыі паводле года стварэння, тыпу аб'екта, асобы і геаграфіі.";
 
+    async function getAvailableGeminiModels(apiKey) {
+      try {
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        if (!data.models || !Array.isArray(data.models)) return null;
+
+        const valid = data.models.filter(m => 
+          Array.isArray(m.supportedGenerationMethods) && 
+          m.supportedGenerationMethods.includes('generateContent')
+        );
+
+        return valid.map(m => {
+          const cleanName = m.name ? m.name.replace(/^models\//, '') : '';
+          return {
+            id: cleanName,
+            displayName: m.displayName || cleanName,
+            isFlash: cleanName.toLowerCase().includes('flash'),
+            isPro: cleanName.toLowerCase().includes('pro'),
+          };
+        }).filter(m => m.id);
+      } catch (e) {
+        console.warn('Could not list models:', e);
+        return null;
+      }
+    }
+
+    window.refreshGeminiModelsList = async function() {
+      const apiKeyInput = document.getElementById('geminiApiKeyInput');
+      const apiKey = (apiKeyInput ? apiKeyInput.value.trim() : '') || localStorage.getItem('gemini_api_key');
+      const hint = document.getElementById('geminiModelStatusHint');
+      const select = document.getElementById('geminiModelSelect');
+      if (!apiKey) {
+        if (hint) hint.textContent = 'Увядзіце API-ключ, каб праверыць даступныя мадэлі Google AI Studio.';
+        return;
+      }
+      if (hint) hint.textContent = '⏳ Атрымліваем актуальныя мадэлі для вашага ключа ад Google AI...';
+
+      const models = await getAvailableGeminiModels(apiKey);
+      if (models && models.length > 0) {
+        const currentVal = select.value || localStorage.getItem('gemini_model') || 'auto';
+        select.innerHTML = '<option value="auto">⭐ Аўта-выбар (рэкамендуецца: аўта-пераключэнне пры перагрузцы)</option>';
+        
+        const sorted = [...models].sort((a, b) => {
+          if (a.isFlash && !b.isFlash) return -1;
+          if (!a.isFlash && b.isFlash) return 1;
+          return a.id.localeCompare(b.id);
+        });
+
+        sorted.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = `${m.displayName || m.id} ${m.isFlash ? '⚡ (Хуткая)' : ''}`;
+          select.appendChild(opt);
+        });
+
+        if ([...select.options].some(o => o.value === currentVal)) {
+          select.value = currentVal;
+        } else {
+          select.value = 'auto';
+        }
+        if (hint) hint.textContent = `✅ Знойдзена ${models.length} мадэляў. Рэкамендуем "Аўта-выбар".`;
+      } else {
+        if (hint) hint.textContent = '⚠️ Не ўдалося аўтаматычна прачытаць мадэлі (будзе ўжыты аўта-перабор базавых).';
+      }
+    };
+
     window.openGeminiSettings = function() {
       const modal = document.getElementById('geminiModal');
       const input = document.getElementById('geminiApiKeyInput');
       const select = document.getElementById('geminiModelSelect');
       const currentKey = localStorage.getItem('gemini_api_key') || '';
-      let currentModel = localStorage.getItem('gemini_model') || 'gemini-3.6-flash';
-      if (currentModel === 'gemini-2.5-flash') {
-        currentModel = 'gemini-3.6-flash';
-        localStorage.setItem('gemini_model', currentModel);
-      }
+      let currentModel = localStorage.getItem('gemini_model') || 'auto';
 
       input.value = currentKey;
       select.value = currentModel;
       modal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
+      if (currentKey) {
+        refreshGeminiModelsList();
+      }
       setTimeout(() => input.focus(), 100);
     };
 
@@ -1566,6 +1736,7 @@ LAST|P973|"${item.detailUrl}"`;
 
     window.removeGeminiKey = function() {
       localStorage.removeItem('gemini_api_key');
+      localStorage.removeItem('gemini_model');
       const input = document.getElementById('geminiApiKeyInput');
       input.value = '';
       updateGeminiStatusBadge();
@@ -1605,11 +1776,6 @@ LAST|P973|"${item.detailUrl}"`;
         btn.innerHTML = `<span class="inline-block animate-spin mr-1">⏳</span> Gemini фармуе 9-моўнае апісанне...`;
       }
 
-      let model = localStorage.getItem('gemini_model') || 'gemini-3.6-flash';
-      if (model === 'gemini-2.5-flash') {
-        model = 'gemini-3.6-flash';
-        localStorage.setItem('gemini_model', model);
-      }
       const imgs = (item.images && item.images.length > 0) ? item.images : [item.imgOriginal];
       const activeImg = imgs[currentModalImageIndex] || imgs[0] || '';
       const totalImgs = imgs.length;
@@ -1633,36 +1799,107 @@ LAST|P973|"${item.detailUrl}"`;
 `;
 
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system_instruction: {
-              parts: [{ text: GEMINI_SYSTEM_INSTRUCTION }]
-            },
-            contents: [
-              {
-                parts: [{ text: userPrompt }]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.2
-            }
-          })
-        });
-
-        if (!resp.ok) {
-          const errData = await resp.json().catch(() => ({}));
-          const errMsg = errData.error && errData.error.message ? errData.error.message : `HTTP ${resp.status}`;
-          throw new Error(errMsg);
+        // Build candidate models list
+        const candidateModels = [];
+        const preferredModel = localStorage.getItem('gemini_model') || 'auto';
+        if (preferredModel && preferredModel !== 'auto') {
+          candidateModels.push(preferredModel.replace(/^models\//, ''));
         }
 
-        const data = await resp.json();
-        const candidate = data.candidates && data.candidates[0];
-        const text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] && candidate.content.parts[0].text;
+        // Dynamic query to Google AI Studio ListModels
+        const dynamicModels = await getAvailableGeminiModels(apiKey);
+        if (dynamicModels && dynamicModels.length > 0) {
+          const flash = dynamicModels.filter(m => m.isFlash).map(m => m.id);
+          const pro = dynamicModels.filter(m => m.isPro).map(m => m.id);
+          const others = dynamicModels.filter(m => !m.isFlash && !m.isPro).map(m => m.id);
+          [...flash, ...pro, ...others].forEach(m => {
+            if (!candidateModels.includes(m)) candidateModels.push(m);
+          });
+        } else {
+          const fallbacks = [
+            'gemini-2.0-flash',
+            'gemini-2.0-flash-lite',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-flash',
+            'gemini-2.5-flash',
+            'gemini-3.6-flash',
+            'gemini-1.5-pro',
+            'gemini-2.0-pro-exp-02-05'
+          ];
+          fallbacks.forEach(m => {
+            if (!candidateModels.includes(m)) candidateModels.push(m);
+          });
+        }
 
-        if (!text) throw new Error('Пусты адказ ад мадэлі Gemini');
+        let lastError = null;
+        let responseData = null;
+        let successfulModel = '';
+
+        for (let i = 0; i < candidateModels.length; i++) {
+          const modelId = candidateModels[i].replace(/^models\//, '');
+          if (btn) {
+            btn.innerHTML = `<span class="inline-block animate-spin mr-1">⏳</span> Gemini (${modelId}) апрацоўвае...`;
+          }
+
+          try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+            const resp = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                system_instruction: {
+                  parts: [{ text: GEMINI_SYSTEM_INSTRUCTION }]
+                },
+                contents: [
+                  {
+                    parts: [{ text: userPrompt }]
+                  }
+                ],
+                generationConfig: {
+                  temperature: 0.2
+                }
+              })
+            });
+
+            if (!resp.ok) {
+              const errData = await resp.json().catch(() => ({}));
+              const errMsg = errData.error && errData.error.message ? errData.error.message : `HTTP ${resp.status}`;
+              console.warn(`Model ${modelId} error:`, errMsg);
+              lastError = new Error(`${modelId}: ${errMsg}`);
+
+              if (i < candidateModels.length - 1) {
+                showToast(`Мадэль ${modelId} перагружана/недаступная, пераключаемся на іншую...`, '🔄');
+                continue;
+              } else {
+                throw lastError;
+              }
+            }
+
+            const data = await resp.json();
+            const candidate = data.candidates && data.candidates[0];
+            const text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] && candidate.content.parts[0].text;
+
+            if (!text) {
+              throw new Error(`Пусты адказ ад мадэлі ${modelId}`);
+            }
+
+            responseData = text;
+            successfulModel = modelId;
+            break;
+          } catch (err) {
+            lastError = err;
+            console.warn(`Attempt with ${modelId} failed:`, err);
+            if (i < candidateModels.length - 1) {
+              continue;
+            }
+          }
+        }
+
+        if (!responseData) {
+          throw lastError || new Error('Ніводная з мадэляў Gemini не змагла апрацаваць запыт.');
+        }
+
+        const text = responseData;
 
         // Extract wikitext inside code block
         let wikitext = '';
@@ -1673,7 +1910,6 @@ LAST|P973|"${item.detailUrl}"`;
           const endBlock = text.indexOf('```', startBlock + 3);
           if (endBlock !== -1) {
             let blockContent = text.substring(startBlock + 3, endBlock).trim();
-            // Remove optional lang identifier like 'wiki' or 'mediawiki'
             const firstLineBreak = blockContent.indexOf(String.fromCharCode(10));
             if (firstLineBreak !== -1) {
               const firstLine = blockContent.substring(0, firstLineBreak).trim().toLowerCase();
@@ -1757,7 +1993,7 @@ LAST|P973|"${item.detailUrl}"`;
           uploadBtn.href = uploadUrl;
         }
 
-        showToast('✨ 9-моўнае апісанне ад Gemini гатова і падстаўлена ў форму!', '🎉');
+        showToast(`✨ 9-моўнае апісанне гатова (мадэль: ${successfulModel})!`, '🎉');
       } catch (err) {
         console.error('Gemini error:', err);
         showToast('Памылка Gemini: ' + err.message, '⚠️');
