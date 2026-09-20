@@ -1645,6 +1645,27 @@
             <div class="border-t border-stone-200 pt-3 text-xs">
 
               <div class="pt-0 space-y-3">
+                <!-- Кнопка кароткага апісання AI (be/en/ru, аўтазапаўненне URL) -->
+                <div class="p-3 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-xl border border-teal-200 space-y-2">
+                  <div class="flex items-center justify-between flex-wrap gap-2">
+                    <span class="text-xs font-bold text-teal-950 flex items-center gap-1.5">
+                      <span>✨</span> Кароткае апісанне AI (be / en / ru)
+                    </span>
+                    <span class="text-[10px] text-teal-700">≤ 3 000 сімв. · аўтаматычна ў «Тлумачэнне»</span>
+                  </div>
+                  <p class="text-[11px] text-teal-900/80 leading-relaxed">
+                    Gemini AI фармуе 3-моўны шаблон. Поле «Тлумачэнне» запоўніцца <strong>аўтаматычна</strong> — Ctrl+V не патрэбна!
+                  </p>
+                  <button
+                    type="button"
+                    id="btnGenerateCompact"
+                    onclick="generateCompact()"
+                    class="w-full flex items-center justify-center gap-2 px-3.5 py-2 bg-gradient-to-r from-teal-600 to-cyan-700 hover:from-teal-700 hover:to-cyan-800 text-white text-xs font-bold rounded-lg shadow transition cursor-pointer"
+                  >
+                    <span>✨</span> AI: кароткае апісанне (be/en/ru) — аўтазапаўненне
+                  </button>
+                </div>
+
                 <!-- Блок Gemini AI -->
                 <div class="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-indigo-200 space-y-2">
                   <div class="flex items-center justify-between flex-wrap gap-2">
@@ -1676,7 +1697,7 @@
                     </div>
                   ` : `
                     <p class="text-[11px] text-indigo-900/80 leading-relaxed">
-                      Перакладзе апісанне і назву на 9 моў (be, en, fr, de, es, it, pl, lt, ru) беларускай лацінкай.
+                      Перакладзе на 9 моў (be, en, fr, de, es, it, pl, lt, ru). Апісанне будзе ў буферы абмену — устаўце <strong>Ctrl+V</strong> у поле «Тлумачэнне».
                     </p>
                   `}
 
@@ -2372,6 +2393,265 @@ LAST|P973|"${item.detailUrl}"`;
       } else {
         if (headerBtn) headerBtn.innerHTML = 'Падлучыць Gemini AI';
         if (modalStatus) modalStatus.innerHTML = '⚙️ Налады Gemini (не падлучаны)';
+      }
+    };
+
+    // ===================================================================
+    // buildCompactWikitext: trim/abbreviate AI-generated text to ≤3000 chars
+    // ===================================================================
+    function buildCompactWikitext(rawWikitext) {
+      if (!rawWikitext) return rawWikitext;
+      let wt = rawWikitext;
+
+      function abbrev(s) {
+        return s
+          // Belarusian years/centuries
+          .replace(/\b(у |з |у |ад |да )?гадах\b/g, '$1гг.')
+          .replace(/\bгады\b/g, 'гг.')
+          .replace(/\bгаду\b/g, 'г.')
+          .replace(/\bстагоддзях\b/g, 'стст.')
+          .replace(/\bстагоддзе\b/g, 'ст.')
+          .replace(/\bстагодд[а-яёіў]+\b/g, 'ст.')
+          // Russian years/centuries
+          .replace(/\bгодах\b/g, 'гг.')
+          .replace(/\bгодов\b/g, 'гг.')
+          .replace(/\bвека\b/g, 'в.')
+          .replace(/\bвеков\b/g, 'вв.')
+          .replace(/\bстолетий\b/g, 'стст.')
+          .replace(/\bстолетие\b/g, 'ст.')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      // Step 1: abbreviate
+      if (wt.length > 3000) {
+        wt = abbrev(wt);
+      }
+
+      // Step 2: truncate long {{ru|...}} description block
+      if (wt.length > 3000) {
+        // Try removing the Russian description content (keep {{ru|...}} label short)
+        wt = wt.replace(/\{\{ru\|1=([^}]{100})[^}]*\}\}/g, function(m, p1) {
+          return '{{ru|1=' + p1.trim() + '…}}';
+        });
+      }
+
+      // Step 3: drop {{ru|...}} description line entirely if still > 3000
+      if (wt.length > 3000) {
+        // Remove ru description line (the one in |description = section)
+        wt = wt.replace(/^\{\{ru\|1=[^}]*\}\}\s*$/gm, '');
+      }
+
+      // Step 4: truncate {{be|...}} description to 250 chars
+      if (wt.length > 3000) {
+        wt = wt.replace(/\{\{be\|1=([^}]{250})[^}]*\}\}/g, function(m, p1) {
+          return '{{be|1=' + p1.trim() + '…}}';
+        });
+      }
+
+      return wt.replace(/\n{3,}/g, '\n\n').trim() + '\n';
+    }
+
+    window.generateCompact = async function() {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      if (!apiKey) {
+        openGeminiSettings();
+        showToast('Спачатку падлучыце ваш бясплатны Gemini API ключ', '🔑');
+        return;
+      }
+
+      const item = currentModalItem;
+      if (!item) return;
+
+      const btn = document.getElementById('btnGenerateCompact');
+      const originalBtnHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Gemini фармуе кароткае апісанне...';
+      }
+
+      const imgs = (item.images && item.images.length > 0) ? item.images : [item.imgOriginal || ''];
+      const totalImgs = imgs.length;
+      const activeImg = imgs[currentModalImageIndex] || imgs[0] || '';
+
+      const compactSystemPrompt = "Твая роля: Ты — эксперт па афармленні файлаў для Wikimedia Commons. Сфарміруй КАРОТКІ шаблон {{Artwork}} строга на 3 мовах: беларускай ({{be}}), англійскай ({{en}}) і рускай ({{ru}})." +
+        "\n\nСТРОГІЯ ПРАВІЛЫ:\n" +
+        "1. АГУЛЬНЫ АБ'ЁМ адказу НЕ БОЛЬШ ЗА 3000 СІМВАЛАЎ (з улікам шаблона). Гэта найважнейшая ўмова!\n" +
+        "2. Апісанні (|description=) скарачай агрэсіўна. Пакідай 1-2 сказы максімум.\n" +
+        "3. Замяняй: 'гадах' → 'гг.', 'стагоддзі/стагоддзях' → 'ст./стст.', 'годах' → 'гг.', 'века' → 'в.', 'столетий' → 'стст.'\n" +
+        "4. Калі тэкст не ўлазіць у 3000 — выкідай рускае апісанне ({{ru}} у |description=), пакідай толькі рускую назву ({{ru}} у |title=).\n" +
+        "5. Фармат выдачы: адзін блок кода (code block) з шаблонам, потым на новым радку: 'Назва файла: ...'\n" +
+        "6. НЕ ПІШЫ 'wikitext' у пачатку code block — адразу пачынай з == {{int:filedesc}} ==\n" +
+        "7. Для Гродна ва ўсіх мовах (апроч польскай і рускай) пішы 'Hrodna' (не 'Grodno').\n" +
+        "8. Назва файла на англійскай, словы раздзяляй прабеламі і коскамі, дата ў дужках у канцы.";
+
+      const compactUserPrompt = "Аформі кароткі музейны экспанат для Wikimedia Commons (толькі be/en/ru, максімум 3000 сімв.):\n" +
+        "- Назва (бел.): " + (item.nameBe || item.name) + "\n" +
+        "- Назва (рус.): " + (item.nameRu || item.name) + "\n" +
+        "- Апісанне (бел.): " + (item.summaryBe || item.summary || 'няма') + "\n" +
+        "- Апісанне (рус.): " + (item.summaryRu || item.summary || 'няма') + "\n" +
+        "- Музей: " + item.museum + "\n" +
+        "- Перыяд: " + (item.period || 'невядомы') + "\n" +
+        "- Матэрыялы: " + ((item.materials && item.materials.length) ? item.materials.join(', ') : 'не пазначаны') + "\n" +
+        "- Тэхналогіі: " + ((item.technologies && item.technologies.length) ? item.technologies.join(', ') : 'не пазначаны') + "\n" +
+        "- Аўтары: " + ((item.authors && item.authors.length) ? item.authors.join(', ') : 'невядомы') + "\n" +
+        "- Памеры: " + (item.formattedDimensions || '') + "\n" +
+        "- Краіна/Месца: " + ([item.country, item.place].filter(Boolean).join(', ') || 'не пазначана') + "\n" +
+        "- Інвентарны №: " + (item.invNumber || '') + "\n" +
+        "- Спасылка: " + item.detailUrl + " (ID: " + item.id + ")\n" +
+        "- Выява " + (currentModalImageIndex + 1) + " з " + totalImgs + "\n\n" +
+        "ВАЖНА: Агульны аб'ём шаблона НЕ БОЛЬШ ЗА 3000 СІМВАЛАЎ!";
+
+      try {
+        const candidateModels = [];
+        const preferredModel = localStorage.getItem('gemini_model') || 'auto';
+        if (preferredModel && preferredModel !== 'auto') {
+          candidateModels.push(preferredModel.replace(/^models\//, ''));
+        }
+        const dynamicModels = await getAvailableGeminiModels(apiKey);
+        if (dynamicModels && dynamicModels.length > 0) {
+          const flash = dynamicModels.filter(m => m.isFlash).map(m => m.id);
+          const pro   = dynamicModels.filter(m => m.isPro).map(m => m.id);
+          const others = dynamicModels.filter(m => !m.isFlash && !m.isPro).map(m => m.id);
+          [...flash, ...pro, ...others].forEach(m => { if (!candidateModels.includes(m)) candidateModels.push(m); });
+        } else {
+          ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash-latest', 'gemini-1.5-flash'].forEach(m => {
+            if (!candidateModels.includes(m)) candidateModels.push(m);
+          });
+        }
+
+        let responseText = null;
+        for (let i = 0; i < candidateModels.length; i++) {
+          const modelId = candidateModels[i].replace(/^models\//, '');
+          if (btn) btn.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Gemini (' + modelId + ') фармуе кароткае апісанне...';
+          try {
+            const resp = await fetch(
+              'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  system_instruction: { parts: [{ text: compactSystemPrompt }] },
+                  contents: [{ parts: [{ text: compactUserPrompt }] }],
+                  generationConfig: { temperature: 0.15 }
+                })
+              }
+            );
+            if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(modelId + ': ' + (e.error && e.error.message || resp.status)); }
+            const data = await resp.json();
+            const txt = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+            if (!txt) throw new Error('Empty response from ' + modelId);
+            responseText = txt;
+            break;
+          } catch(err) {
+            if (i < candidateModels.length - 1) continue;
+            throw err;
+          }
+        }
+
+        if (!responseText) throw new Error('Ніводная мадэль не адказала');
+
+        // --- Parse wikitext and filename from response ---
+        let wikitext = '';
+        let suggestedName = '';
+        const startBlock = responseText.indexOf('```');
+        if (startBlock !== -1) {
+          const endBlock = responseText.indexOf('```', startBlock + 3);
+          if (endBlock !== -1) {
+            let blockContent = responseText.substring(startBlock + 3, endBlock).trim();
+            const firstLB = blockContent.indexOf('\n');
+            if (firstLB !== -1) {
+              const firstLine = blockContent.substring(0, firstLB).trim().toLowerCase();
+              if (!firstLine.startsWith('=') && !firstLine.startsWith('{') && !firstLine.startsWith('[[')) {
+                blockContent = blockContent.substring(firstLB + 1).trim();
+              }
+            }
+            blockContent = blockContent.replace(/^wikitext\s*/i, '').trim();
+            wikitext = blockContent;
+            const afterLines = responseText.substring(endBlock + 3).trim().split('\n').map(l => l.trim()).filter(Boolean);
+            for (const l of afterLines) {
+              let clean = l.replace(/^(назва файла:|file name:|filename:)/i, '').replaceAll('`','').replaceAll('"','').replaceAll("'",'').trim();
+              if (/\.(jpg|jpeg|png|tif|tiff)$/i.test(clean)) { suggestedName = clean; break; }
+            }
+            if (!suggestedName && afterLines.length > 0) {
+              suggestedName = afterLines[0].replace(/^(назва файла:|file name:|filename:)/i, '').replaceAll('`','').replaceAll('"','').trim();
+              if (!suggestedName.toLowerCase().endsWith('.jpg')) suggestedName += '.jpg';
+            }
+          }
+        }
+        if (!wikitext) wikitext = responseText.trim();
+
+        // Strip wikitext code fence leftovers
+        wikitext = wikitext.replace(/^```[\w]*\s*/i, '').replace(/^wikitext\s*/i, '').trim();
+        if (wikitext.endsWith('```')) wikitext = wikitext.slice(0, -3).trim();
+
+        // Apply Hrodna enforcement
+        ['en','de','fr','es','it'].forEach(lang => {
+          let idx = 0;
+          while (true) {
+            const s = wikitext.indexOf('{' + lang + '|', idx);
+            if (s === -1) break;
+            const e = wikitext.indexOf('}', s);
+            if (e === -1) break;
+            const chunk = wikitext.substring(s, e);
+            if (chunk.includes('Grodno') || chunk.includes('Grodna')) {
+              const rep = chunk.replaceAll('Grodno','Hrodna').replaceAll('Grodna','Hrodna');
+              wikitext = wikitext.substring(0, s) + rep + wikitext.substring(e);
+              idx = s + rep.length;
+            } else { idx = e + 2; }
+          }
+        });
+
+        // Apply abbreviations & truncation to enforce ≤3000
+        wikitext = buildCompactWikitext(wikitext);
+
+        // Clean forbidden filename chars
+        if (suggestedName) {
+          suggestedName = suggestedName.replaceAll('Grodno','Hrodna').replaceAll('Grodna','Hrodna');
+          suggestedName = suggestedName.replace(/([IVXLCDM]+)([A-Z][a-z]+)/g, '$1, $2');
+          suggestedName = suggestedName.replace(/([a-zA-Z])Hrodna/g, '$1, Hrodna');
+          ['[',']','{','}','|','#','/','<','>','*','?','\\'].forEach(ch => { suggestedName = suggestedName.replaceAll(ch,''); });
+          suggestedName = suggestedName.replace(/\s+/g,' ').trim();
+          if (!/\.(jpg|jpeg|png|tif|tiff)$/i.test(suggestedName)) suggestedName += '.jpg';
+        }
+        if (!suggestedName) suggestedName = buildCommonsData(item, currentModalImageIndex).suggestedFilename;
+
+        // --- Update UI ---
+        const fnDisplay = document.getElementById('modalSuggestedFilenameDisplay');
+        if (fnDisplay) fnDisplay.textContent = '📁 ' + suggestedName;
+
+        const ta = document.getElementById('modalWikitextPreview');
+        if (ta) ta.value = wikitext;
+
+        // --- Build upload URL ---
+        const encDesc = encodeURIComponent(wikitext);
+        const fits = encDesc.length < 5500;
+        let uploadUrl = 'https://commons.wikimedia.org/w/index.php?title=Special:Upload&wpDestFile=' + encodeURIComponent(suggestedName);
+        if (fits) uploadUrl += '&wpUploadDescription=' + encDesc;
+
+        // Copy to clipboard regardless
+        try { if (navigator.clipboard) await navigator.clipboard.writeText(wikitext); } catch(e) {}
+
+        const chars = wikitext.length;
+        if (typeof window.showToast === 'function') {
+          if (fits) {
+            window.showToast('✅ Кароткае (be/en/ru, ' + chars + ' сімв.) — поле «Тлумачэнне» запоўніцца аўтаматычна!', '✅');
+          } else {
+            window.showToast('📋 Кароткае (be/en/ru, ' + chars + ' сімв.) — Ctrl+V у «Тлумачэнне»', '📋');
+          }
+        }
+
+        if (btn) {
+          btn.innerHTML = fits
+            ? '<span>✅</span> Кароткае (be/en/ru, ' + chars + ' сімв.) — аўтазапаўненне!'
+            : '<span>📋</span> Кароткае (be/en/ru, ' + chars + ' сімв.) — Ctrl+V';
+          btn.disabled = false;
+        }
+
+      } catch(err) {
+        console.error('generateCompact error:', err);
+        if (typeof window.showToast === 'function') window.showToast('Памылка: ' + (err.message || err), '❌');
+        if (btn) { btn.disabled = false; btn.innerHTML = originalBtnHtml; }
       }
     };
 
