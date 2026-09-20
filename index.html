@@ -1174,14 +1174,15 @@ ${(function(){
       return cache[key] || null;
     };
 
-    window.setCachedAiData = function(itemId, imgIdx, suggestedName, wikitext) {
+    window.setCachedAiData = function(itemId, imgIdx, suggestedName, wikitext, modelUsed = '') {
       if (!itemId) return;
       const cache = window.getAiCache();
       const key = String(itemId) + '_' + imgIdx;
       cache[key] = {
         suggestedName: suggestedName,
         wikitext: wikitext,
-        savedAt: new Date().toISOString()
+        savedAt: new Date().toISOString(),
+        modelUsed: modelUsed || (cache[key] && cache[key].modelUsed) || ''
       };
       window.saveAiCache(cache);
       if (typeof window.updateModalCommonsAndImage === 'function') {
@@ -1638,8 +1639,10 @@ ${(function(){
       let activeSuggestedFilename = cData.suggestedFilename;
       let activeWikitext = window.sanitizeCommonsWikitext ? window.sanitizeCommonsWikitext(cData.wikitext, item) : cData.wikitext;
       let isAiCached = false;
+      let aiModelUsed = '';
 
       if (cachedAi && cachedAi.wikitext && cachedAi.suggestedName) {
+        aiModelUsed = cachedAi.modelUsed || '';
         let fn = cachedAi.suggestedName;
         // Auto-fix any previously cached entries that had merged words or missing commas/extensions:
         fn = fn.replace(/([IVXLCDM]+)([A-Z][a-z]+)/g, '$1, $2');
@@ -1858,8 +1861,9 @@ ${(function(){
 
                   ${isAiCached ? `
                     <div class="flex items-center justify-between text-[11px] bg-white border border-emerald-300 text-emerald-950 p-2 rounded-lg shadow-xs">
-                      <span class="font-semibold text-emerald-800 flex items-center gap-1">
-                        <span>💾</span> Захаваны 9-моўны варыянт ШІ!
+                      <span class="font-semibold text-emerald-800 flex items-center gap-1.5 flex-wrap">
+                        <span>💾</span> Захаваны варыянт ШІ
+                        ${aiModelUsed ? `<span class="px-1.5 py-0.5 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded text-[10px] font-mono">🤖 ${aiModelUsed}</span>` : ''}
                       </span>
                       <button 
                         type="button" 
@@ -1889,7 +1893,10 @@ ${(function(){
                 <!-- Тэкставае поле гатовага вікітэксту -->
                 <div>
                   <div class="flex items-center justify-between text-[11px] text-stone-600 font-medium mb-1">
-                    <span>Гатовы тэкст для Вікісховішча:</span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span>Гатовы тэкст для Вікісховішча:</span>
+                      ${aiModelUsed ? `<span class="px-1.5 py-0.5 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded text-[10px] font-mono font-bold">🤖 ${aiModelUsed}</span>` : ''}
+                    </div>
                     <button 
                       type="button" 
                       onclick="copyWikitextDirect()" 
@@ -2701,6 +2708,7 @@ LAST|P973|"${item.detailUrl}"`;
         "ВАЖНА: Агульны аб'ём шаблона НЕ БОЛЬШ ЗА 3000 СІМВАЛАЎ!";
 
       try {
+        let successfulModel = '';
         const rawPref = localStorage.getItem('gemini_model') || 'auto';
         const isStrict = rawPref && rawPref !== 'auto';
         const candidateModels = [];
@@ -2775,6 +2783,7 @@ LAST|P973|"${item.detailUrl}"`;
 
               if (!extracted) throw new Error('Пусты адказ ад ' + modelId);
               responseText = extracted;
+              successfulModel = modelId;
               break;
             } catch(err) {
               if (attempt < maxRetries) continue;
@@ -2855,6 +2864,11 @@ LAST|P973|"${item.detailUrl}"`;
           if (!/\.(jpg|jpeg|png|tif|tiff)$/i.test(suggestedName)) suggestedName += '.jpg';
         }
         if (!suggestedName) suggestedName = buildCommonsData(item, currentModalImageIndex).suggestedFilename;
+
+        // Save to AI cache
+        if (typeof window.setCachedAiData === 'function') {
+          window.setCachedAiData(item.id, currentModalImageIndex, suggestedName, wikitext, successfulModel);
+        }
 
         // --- Update UI ---
         const fnDisplay = document.getElementById('modalSuggestedFilenameDisplay');
@@ -3210,9 +3224,9 @@ LAST|P973|"${item.detailUrl}"`;
           wikitext = window.sanitizeCommonsWikitext(wikitext, item);
         }
 
-        // Save to persistent AI cache
+        // Save to persistent AI cache with model name
         if (typeof window.setCachedAiData === 'function') {
-          window.setCachedAiData(item.id, currentModalImageIndex, suggestedName, wikitext);
+          window.setCachedAiData(item.id, currentModalImageIndex, suggestedName, wikitext, successfulModel);
         }
 
         // Update UI with safe URL length
