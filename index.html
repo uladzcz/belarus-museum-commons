@@ -1705,12 +1705,31 @@ ${(function(){
                   <a href="${uploadedInfo.commonsUrl || ('https://commons.wikimedia.org/wiki/' + encodeURIComponent(uploadedInfo.fileTitle))}" target="_blank" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold shadow-xs whitespace-nowrap">
                     Адкрыць ↗
                   </a>
-                  <button type="button" onclick="unmarkCurrentModalItem()" class="px-2.5 py-1.5 bg-white text-stone-600 hover:text-red-600 rounded-lg text-xs font-semibold border border-blue-200 transition shadow-xs cursor-pointer" title="Зняць памылковую адзнаку">
+                  <button type="button" onclick="unmarkCurrentModalItem()" class="px-2.5 py-1.5 bg-white text-stone-600 hover:text-red-600 rounded-lg text-xs font-semibold border border-blue-200 transition shadow-xs cursor-pointer" title="Зняць адзнаку загрузкі">
                     ✕ Зняць
                   </button>
                 </div>
               </div>
-            ` : ''}
+            ` : `
+              <!-- Заўсёды бачная кнопка: Пазначыць як загружаны -->
+              <div class="p-3 bg-stone-100/90 border border-stone-300 rounded-xl flex items-center justify-between gap-3 text-xs text-stone-700 shadow-xs">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">📤</span>
+                  <div>
+                    <span class="font-bold text-stone-900 block">Ужо загрузілі гэты экспанат на Вікісховішча?</span>
+                    <span class="text-[11px] text-stone-500">Націсніце, каб у каталогу з’явілася адзнака «✅ На Вікісховішчы»</span>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  onclick="confirmModalUpload()" 
+                  class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap text-xs flex-shrink-0"
+                  title="Пазначыць гэты экспанат як загружаны на Вікісховішча"
+                >
+                  <span>✅</span> Пазначыць як загружаны
+                </button>
+              </div>
+            `}
 
             <!-- Назва файла для Вікісховішча -->
             <div class="bg-white rounded-xl p-3 border border-stone-200 shadow-xs">
@@ -2066,9 +2085,18 @@ ${(function(){
       const item = window.currentModalItem;
       if (!item) return;
       const fnDisplay = document.getElementById('modalSuggestedFilenameDisplay');
-      const fn = fnDisplay ? fnDisplay.textContent.replace(/^📁\s*/, '').trim() : '';
+      let defaultFn = fnDisplay ? fnDisplay.textContent.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{26FF}]\s*/u, '').replace(/^📁\s*/, '').trim() : '';
+      if (!defaultFn) {
+        const cData = (typeof window.buildCommonsData === 'function') ? window.buildCommonsData(item, window.currentModalImageIndex || 0) : null;
+        defaultFn = cData ? cData.suggestedFilename : ((item.nameRu || 'Exhibit') + '.jpg');
+      }
+
+      const inputName = prompt('Пацвердзіце назву загружанага файла на Вікісховішчы (без прэфікса File:):', defaultFn);
+      if (inputName === null) return; // User cancelled
+      const chosenFn = inputName.trim() || defaultFn;
+
       if (typeof window.markAsUploadedToCommons === 'function') {
-        window.markAsUploadedToCommons(item.id, fn);
+        window.markAsUploadedToCommons(item.id, chosenFn);
       }
     };
 
@@ -2642,50 +2670,89 @@ LAST|P973|"${item.detailUrl}"`;
         "ВАЖНА: Агульны аб'ём шаблона НЕ БОЛЬШ ЗА 3000 СІМВАЛАЎ!";
 
       try {
+        const rawPref = localStorage.getItem('gemini_model') || 'auto';
+        const isStrict = rawPref && rawPref !== 'auto';
         const candidateModels = [];
-        const preferredModel = localStorage.getItem('gemini_model') || 'auto';
-        if (preferredModel && preferredModel !== 'auto') {
-          candidateModels.push(preferredModel.replace(/^models\//, ''));
-        }
-        const dynamicModels = await getAvailableGeminiModels(apiKey);
-        if (dynamicModels && dynamicModels.length > 0) {
-          const flash = dynamicModels.filter(m => m.isFlash).map(m => m.id);
-          const pro   = dynamicModels.filter(m => m.isPro).map(m => m.id);
-          const others = dynamicModels.filter(m => !m.isFlash && !m.isPro).map(m => m.id);
-          [...flash, ...pro, ...others].forEach(m => { if (!candidateModels.includes(m)) candidateModels.push(m); });
+
+        if (isStrict) {
+          // STRICT user choice, never silently fall back
+          candidateModels.push(rawPref.replace(/^models\//, ''));
         } else {
-          ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash-latest', 'gemini-1.5-flash'].forEach(m => {
-            if (!candidateModels.includes(m)) candidateModels.push(m);
-          });
+          const dynamicModels = await getAvailableGeminiModels(apiKey);
+          if (dynamicModels && dynamicModels.length > 0) {
+            const pro   = dynamicModels.filter(m => m.isPro).map(m => m.id);
+            const flash = dynamicModels.filter(m => m.isFlash).map(m => m.id);
+            const others = dynamicModels.filter(m => !m.isFlash && !m.isPro).map(m => m.id);
+            [...pro, ...flash, ...others].forEach(m => { if (!candidateModels.includes(m)) candidateModels.push(m); });
+          } else {
+            ['gemini-2.5-pro', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-1.5-flash'].forEach(m => {
+              if (!candidateModels.includes(m)) candidateModels.push(m);
+            });
+          }
         }
 
         let responseText = null;
         for (let i = 0; i < candidateModels.length; i++) {
           const modelId = candidateModels[i].replace(/^models\//, '');
-          if (btn) btn.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Gemini (' + modelId + ') фармуе кароткае апісанне...';
-          try {
-            const resp = await fetch(
-              'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  system_instruction: { parts: [{ text: compactSystemPrompt }] },
-                  contents: [{ parts: [{ text: compactUserPrompt }] }],
-                  generationConfig: { temperature: 0.15 }
-                })
+          const maxRetries = isStrict ? 3 : 1;
+
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            if (btn) {
+              const retryLabel = (attempt > 1) ? ' (паўтор ' + attempt + '/' + maxRetries + ')' : '';
+              btn.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Gemini (' + modelId + ')' + retryLabel + ' фармуе кароткае апісанне...';
+            }
+
+            if (attempt > 1) {
+              const waitSec = attempt * 5;
+              if (btn) btn.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Мадэль ' + modelId + ' занятая, чакаем ' + waitSec + ' с...';
+              await new Promise(r => setTimeout(r, waitSec * 1000));
+            }
+
+            try {
+              const resp = await fetch(
+                'https://generativelanguage.googleapis.com/v1beta/models/' + modelId + ':generateContent?key=' + apiKey,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    system_instruction: { parts: [{ text: compactSystemPrompt }] },
+                    contents: [{ parts: [{ text: compactUserPrompt }] }],
+                    generationConfig: { temperature: 0.15 }
+                  })
+                }
+              );
+              if (!resp.ok) {
+                const e = await resp.json().catch(() => ({}));
+                const errMsg = e.error && e.error.message ? e.error.message : ('HTTP ' + resp.status);
+                if (attempt < maxRetries) continue;
+                if (!isStrict && i < candidateModels.length - 1) break;
+                throw new Error(modelId + ': ' + errMsg);
               }
-            );
-            if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(modelId + ': ' + (e.error && e.error.message || resp.status)); }
-            const data = await resp.json();
-            const txt = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
-            if (!txt) throw new Error('Empty response from ' + modelId);
-            responseText = txt;
-            break;
-          } catch(err) {
-            if (i < candidateModels.length - 1) continue;
-            throw err;
+              const data = await resp.json();
+              const candidate = data.candidates && data.candidates[0];
+
+              // Support thinking models (Gemini 3 Pro / Gemini 2.5 Pro)
+              let extracted = '';
+              if (candidate && candidate.content && Array.isArray(candidate.content.parts)) {
+                const nonThought = candidate.content.parts.filter(p => !p.thought && p.text);
+                if (nonThought.length > 0) {
+                  extracted = nonThought.map(p => p.text).join('\n');
+                } else {
+                  extracted = candidate.content.parts.map(p => p.text || '').filter(Boolean).join('\n');
+                }
+              }
+
+              if (!extracted) throw new Error('Пусты адказ ад ' + modelId);
+              responseText = extracted;
+              break;
+            } catch(err) {
+              if (attempt < maxRetries) continue;
+              if (!isStrict && i < candidateModels.length - 1) break;
+              throw err;
+            }
           }
+
+          if (responseText) break;
         }
 
         if (!responseText) throw new Error('Ніводная мадэль не адказала');
@@ -2846,35 +2913,28 @@ LAST|P973|"${item.detailUrl}"`;
 
       try {
         // Build candidate models list
+        const rawPref = localStorage.getItem('gemini_model') || 'auto';
+        const isStrict = rawPref && rawPref !== 'auto';
         const candidateModels = [];
-        const preferredModel = localStorage.getItem('gemini_model') || 'auto';
-        if (preferredModel && preferredModel !== 'auto') {
-          candidateModels.push(preferredModel.replace(/^models\//, ''));
-        }
 
-        // Dynamic query to Google AI Studio ListModels
-        const dynamicModels = await getAvailableGeminiModels(apiKey);
-        if (dynamicModels && dynamicModels.length > 0) {
-          const flash = dynamicModels.filter(m => m.isFlash).map(m => m.id);
-          const pro = dynamicModels.filter(m => m.isPro).map(m => m.id);
-          const others = dynamicModels.filter(m => !m.isFlash && !m.isPro).map(m => m.id);
-          [...flash, ...pro, ...others].forEach(m => {
-            if (!candidateModels.includes(m)) candidateModels.push(m);
-          });
+        if (isStrict) {
+          // USER EXPLICITLY CHOSE THIS MODEL! STRICT adherence, NEVER silently downgrade to Flash!
+          candidateModels.push(rawPref.replace(/^models\//, ''));
         } else {
-          const fallbacks = [
-            'gemini-2.0-flash',
-            'gemini-2.0-flash-lite',
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-flash',
-            'gemini-2.5-flash',
-            'gemini-3.6-flash',
-            'gemini-1.5-pro',
-            'gemini-2.0-pro-exp-02-05'
-          ];
-          fallbacks.forEach(m => {
-            if (!candidateModels.includes(m)) candidateModels.push(m);
-          });
+          // Auto mode: prioritize Pro, then Flash
+          const dynamicModels = await getAvailableGeminiModels(apiKey);
+          if (dynamicModels && dynamicModels.length > 0) {
+            const pro = dynamicModels.filter(m => m.isPro).map(m => m.id);
+            const flash = dynamicModels.filter(m => m.isFlash).map(m => m.id);
+            const others = dynamicModels.filter(m => !m.isFlash && !m.isPro).map(m => m.id);
+            [...pro, ...flash, ...others].forEach(m => {
+              if (!candidateModels.includes(m)) candidateModels.push(m);
+            });
+          } else {
+            ['gemini-2.5-pro', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-1.5-flash'].forEach(m => {
+              if (!candidateModels.includes(m)) candidateModels.push(m);
+            });
+          }
         }
 
         let lastError = null;
@@ -2883,62 +2943,92 @@ LAST|P973|"${item.detailUrl}"`;
 
         for (let i = 0; i < candidateModels.length; i++) {
           const modelId = candidateModels[i].replace(/^models\//, '');
-          if (btn) {
-            btn.innerHTML = `<span class="inline-block animate-spin mr-1">⏳</span> Gemini (${modelId}) апрацоўвае...`;
-          }
+          const maxRetries = isStrict ? 3 : 1;
 
-          try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
-            const resp = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                system_instruction: {
-                  parts: [{ text: GEMINI_SYSTEM_INSTRUCTION }]
-                },
-                contents: [
-                  {
-                    parts: [{ text: userPrompt }]
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            if (btn) {
+              const retryLabel = (attempt > 1) ? ` (паўтор ${attempt}/${maxRetries})` : '';
+              btn.innerHTML = `<span class="inline-block animate-spin mr-1">⏳</span> Gemini (${modelId})${retryLabel} апрацоўвае...`;
+            }
+
+            if (attempt > 1) {
+              const waitSec = attempt * 5;
+              if (btn) btn.innerHTML = `<span class="inline-block animate-spin mr-1">⏳</span> Мадэль ${modelId} занятая, чакаем ${waitSec} с...`;
+              await new Promise(r => setTimeout(r, waitSec * 1000));
+            }
+
+            try {
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+              const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  system_instruction: {
+                    parts: [{ text: GEMINI_SYSTEM_INSTRUCTION }]
+                  },
+                  contents: [
+                    {
+                      parts: [{ text: userPrompt }]
+                    }
+                  ],
+                  generationConfig: {
+                    temperature: 0.2
                   }
-                ],
-                generationConfig: {
-                  temperature: 0.2
+                })
+              });
+
+              if (!resp.ok) {
+                const errData = await resp.json().catch(() => ({}));
+                const errMsg = errData.error && errData.error.message ? errData.error.message : `HTTP ${resp.status}`;
+                console.warn(`Model ${modelId} attempt ${attempt} error:`, errMsg);
+                lastError = new Error(`${modelId}: ${errMsg}`);
+
+                if (attempt < maxRetries) {
+                  continue; // Retry same model
+                } else if (!isStrict && i < candidateModels.length - 1) {
+                  showToast(`Мадэль ${modelId} перагружана, пераключаемся...`, '🔄');
+                  break; // Move to next candidate in auto mode
+                } else {
+                  throw lastError;
                 }
-              })
-            });
+              }
 
-            if (!resp.ok) {
-              const errData = await resp.json().catch(() => ({}));
-              const errMsg = errData.error && errData.error.message ? errData.error.message : `HTTP ${resp.status}`;
-              console.warn(`Model ${modelId} error:`, errMsg);
-              lastError = new Error(`${modelId}: ${errMsg}`);
+              const data = await resp.json();
+              const candidate = data.candidates && data.candidates[0];
 
-              if (i < candidateModels.length - 1) {
-                showToast(`Мадэль ${modelId} перагружана/недаступная, пераключаемся на іншую...`, '🔄');
+              // Support reasoning/thinking models (Gemini 3 Pro / Gemini 2.5 Pro):
+              // Extract text from non-thought parts, or combine all text parts
+              let extractedText = '';
+              if (candidate && candidate.content && Array.isArray(candidate.content.parts)) {
+                const nonThought = candidate.content.parts.filter(p => !p.thought && p.text);
+                if (nonThought.length > 0) {
+                  extractedText = nonThought.map(p => p.text).join('\n');
+                } else {
+                  extractedText = candidate.content.parts.map(p => p.text || '').filter(Boolean).join('\n');
+                }
+              }
+
+              if (!extractedText) {
+                throw new Error(`Пусты адказ ад мадэлі ${modelId}`);
+              }
+
+              responseData = extractedText;
+              successfulModel = modelId;
+              break; // Success!
+            } catch (err) {
+              lastError = err;
+              console.warn(`Attempt ${attempt} with ${modelId} failed:`, err);
+              if (attempt < maxRetries) {
                 continue;
+              } else if (!isStrict && i < candidateModels.length - 1) {
+                break; // Move to next candidate
               } else {
                 throw lastError;
               }
             }
-
-            const data = await resp.json();
-            const candidate = data.candidates && data.candidates[0];
-            const text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] && candidate.content.parts[0].text;
-
-            if (!text) {
-              throw new Error(`Пусты адказ ад мадэлі ${modelId}`);
-            }
-
-            responseData = text;
-            successfulModel = modelId;
-            break;
-          } catch (err) {
-            lastError = err;
-            console.warn(`Attempt with ${modelId} failed:`, err);
-            if (i < candidateModels.length - 1) {
-              continue;
-            }
           }
+
+          if (responseData) break;
         }
 
         if (!responseData) {
