@@ -275,12 +275,17 @@
           </div>
           <select id="geminiModelSelect" class="w-full p-2 bg-stone-50 border border-stone-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             <option value="auto">⭐ Аўта-выбар (рэкамендуецца: аўта-пераключэнне пры перагрузцы)</option>
-            <option value="gemini-2.0-flash">Gemini 2.0 Flash ⚡</option>
-            <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+            <option value="gemini-2.5-flash">⭐ gemini-2.5-flash — Бясплатная, новая і разумная</option>
+            <option value="gemini-2.0-flash">⚡ gemini-2.0-flash — Бясплатная, хуткая</option>
             <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
             <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
           </select>
           <p id="geminiModelStatusHint" class="text-[10px] text-stone-500 mt-1 italic"></p>
+          <div class="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-950 leading-relaxed">
+            <span class="font-bold text-amber-900 block mb-0.5">💡 Важна для бясплатных API-ключаў:</span>
+            Кампанія Google закрыла бясплатны доступ да мадэляў <strong>Gemini 3.1 Pro</strong> (ліміт: 0, патрабуецца платны план Google Cloud).<br>
+            Для найвышэйшай якасці на бясплатным ключы абярыце <strong>gemini-2.5-flash</strong> (новая мадэль з разважаннем) альбо <strong>Аўта-выбар</strong>!
+          </div>
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
@@ -2509,7 +2514,20 @@ LAST|P973|"${item.detailUrl}"`;
         sorted.forEach(m => {
           const opt = document.createElement('option');
           opt.value = m.id;
-          opt.textContent = `${m.displayName || m.id} ${m.isFlash ? '⚡ (Хуткая)' : ''}`;
+          let label = m.displayName || m.id;
+          const is3Pro = m.id.includes('3.1-pro') || m.id.includes('3-pro') || m.id.includes('3.0-pro');
+          if (m.id.includes('2.5-flash')) {
+            label = `⭐ ${label} — Бясплатная, новая і вельмі разумная`;
+          } else if (m.id.includes('2.0-flash')) {
+            label = `⚡ ${label} — Бясплатная, хуткая`;
+          } else if (is3Pro) {
+            label = `💳 ${label} — Патрабуе платны план Google Cloud (ліміт: 0 на бясплатным)`;
+          } else if (m.isFlash) {
+            label = `⚡ ${label} — Бясплатная`;
+          } else if (m.isPro) {
+            label = `💎 ${label} — Pro-версія`;
+          }
+          opt.textContent = label;
           select.appendChild(opt);
         });
 
@@ -2518,7 +2536,7 @@ LAST|P973|"${item.detailUrl}"`;
         } else {
           select.value = 'auto';
         }
-        if (hint) hint.textContent = `✅ Знойдзена ${models.length} мадэляў. Рэкамендуем "Аўта-выбар".`;
+        if (hint) hint.textContent = `✅ Знойдзена ${models.length} мадэляў. Для бясплатных ключоў выбірайце "gemini-2.5-flash" альбо "Аўта-выбар"!`;
       } else {
         if (hint) hint.textContent = '⚠️ Не ўдалося аўтаматычна прачытаць мадэлі (будзе ўжыты аўта-перабор базавых).';
       }
@@ -2763,7 +2781,20 @@ LAST|P973|"${item.detailUrl}"`;
               if (!resp.ok) {
                 const e = await resp.json().catch(() => ({}));
                 const errMsg = e.error && e.error.message ? e.error.message : ('HTTP ' + resp.status);
-                if (attempt < maxRetries) continue;
+
+                if (errMsg.includes('limit: 0') || errMsg.includes('free_tier_requests, limit: 0')) {
+                  throw new Error(`Мадэль ${modelId} патрабуе платнага акаўнта Google Cloud (ліміт: 0 на бясплатным). Абярыце ў наладах бясплатную мадэль "gemini-2.5-flash" альбо "Аўта-выбар"!`);
+                }
+
+                let retryDelay = attempt * 5;
+                const matchRetry = errMsg.match(/retry in ([\d\.]+)s/i);
+                if (matchRetry) retryDelay = Math.ceil(parseFloat(matchRetry[1])) + 1;
+
+                if (attempt < maxRetries) {
+                  if (btn) btn.innerHTML = `<span class="inline-block animate-spin mr-1">⏳</span> Google папрасіў пачакаць ${retryDelay} с...`;
+                  await new Promise(r => setTimeout(r, retryDelay * 1000));
+                  continue;
+                }
                 if (!isStrict && i < candidateModels.length - 1) break;
                 throw new Error(modelId + ': ' + errMsg);
               }
@@ -3026,9 +3057,24 @@ LAST|P973|"${item.detailUrl}"`;
                 const errData = await resp.json().catch(() => ({}));
                 const errMsg = errData.error && errData.error.message ? errData.error.message : `HTTP ${resp.status}`;
                 console.warn(`Model ${modelId} attempt ${attempt} error:`, errMsg);
+
+                // Friendly explanation if Google returned free tier limit: 0 for 3.1 Pro
+                if (errMsg.includes('limit: 0') || errMsg.includes('free_tier_requests, limit: 0')) {
+                  throw new Error(`Мадэль ${modelId} патрабуе платнага акаўнта Google Cloud (на бясплатным тарыфе ліміт роўны 0). Абярыце ў наладах бясплатную мадэль "gemini-2.5-flash" альбо "Аўта-выбар"!`);
+                }
+
+                // Parse exact retry delay from Google if available (e.g. "Please retry in 6.99s")
+                let retryDelay = attempt * 5;
+                const matchRetry = errMsg.match(/retry in ([\d\.]+)s/i);
+                if (matchRetry) {
+                  retryDelay = Math.ceil(parseFloat(matchRetry[1])) + 1;
+                }
+
                 lastError = new Error(`${modelId}: ${errMsg}`);
 
                 if (attempt < maxRetries) {
+                  if (btn) btn.innerHTML = `<span class="inline-block animate-spin mr-1">⏳</span> Google папрасіў пачакаць ${retryDelay} с...`;
+                  await new Promise(r => setTimeout(r, retryDelay * 1000));
                   continue; // Retry same model
                 } else if (!isStrict && i < candidateModels.length - 1) {
                   showToast(`Мадэль ${modelId} перагружана, пераключаемся...`, '🔄');
