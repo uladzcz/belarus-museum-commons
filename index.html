@@ -95,18 +95,21 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
         </div>
+        <!-- Anti-autofill: hidden dummy inputs absorb browser credential managers -->
+        <input type="text" name="fake_user_prevent" style="display:none!important;position:absolute;left:-9999px" tabindex="-1" autocomplete="username">
+        <input type="password" name="fake_pass_prevent" style="display:none!important;position:absolute;left:-9999px" tabindex="-1" autocomplete="current-password">
         <input 
           type="search" 
           id="searchInput"
-          name="catalog_search"
-          autocomplete="off"
+          name="museum_query_text"
+          autocomplete="new-password"
           autocorrect="off"
           autocapitalize="off"
           spellcheck="false"
           data-lpignore="true"
           data-form-type="other"
           placeholder="Пошук (назва, матэрыял, музей, перыяд, апісанне альбо QID Вікіданых)..."
-          class="w-full pl-11 pr-10 py-3.5 bg-white rounded-xl border border-stone-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-stone-800 text-sm sm:text-base placeholder-stone-400"
+          class="w-full pl-10 pr-10 py-2.5 sm:py-3 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 focus:bg-white transition shadow-inner"
         >
         <button id="clearSearch" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-stone-400 hover:text-stone-600">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,9 +179,14 @@
           </div>
         </div>
 
-        <button type="button" onclick="syncCommonsUploads(true)" id="btnSyncCommons" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-stone-50 border border-stone-300 rounded-lg text-stone-700 hover:text-stone-900 text-xs font-medium shadow-sm transition" title="Апытаць Wikimedia Commons API і сінхранізаваць статус файлаў">
-          <span>🔄</span> <span>Сінхранізаваць Вікісховішча</span>
-        </button>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="syncCommonsUploads(true)" id="btnSyncCommons" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-stone-50 border border-stone-300 rounded-lg text-stone-700 hover:text-stone-900 text-xs font-medium shadow-sm transition" title="Апытаць Wikimedia Commons API і сінхранізаваць статус файлаў">
+            <span>🔄</span> <span>Сінхранізаваць Вікісховішча</span>
+          </button>
+          <button type="button" onclick="clearUploadedCommonsMap()" class="inline-flex items-center gap-1 px-2 py-1.5 bg-white hover:bg-red-50 text-stone-400 hover:text-red-700 border border-stone-200 hover:border-red-300 rounded-lg text-xs font-medium shadow-xs transition cursor-pointer" title="Скінуць усе пазнакі 'На Вікісховішчы'">
+            <span>🧹</span>
+          </button>
+        </div>
       </div>
 
       <!-- Панэль актыўных фільтраў (Active Facets) -->
@@ -737,6 +745,15 @@
 
     // Init dropdown filters
     function initFilters(rebuild = false) {
+      // Clear browser bot autofill on page load
+      const sInp = document.getElementById('searchInput');
+      if (sInp && (sInp.value.includes('@') || sInp.value.includes('Музейны_каталог') || sInp.value.includes('Чаховіч'))) {
+        sInp.value = '';
+        state.query = '';
+      }
+      if (state.query && (state.query.includes('@') || state.query.includes('Музейны_каталог') || state.query.includes('Чаховіч'))) {
+        state.query = '';
+      }
       const curM = museumFilter.value;
       const curS = shapeFilter.value;
       const curMat = materialFilter.value;
@@ -1453,6 +1470,13 @@ ${(function(){
 
     function renderActivePills() {
       const pills = [];
+
+      // Auto-purge bot credentials from search query
+      if (state.query && (state.query.includes('@') || state.query.includes('Музейны_каталог') || state.query.includes('Чаховіч'))) {
+        state.query = '';
+        const sInp = document.getElementById('searchInput');
+        if (sInp) sInp.value = '';
+      }
 
       if (state.query) {
         pills.push(`
@@ -2378,9 +2402,16 @@ LAST|P973|"${item.detailUrl}"`;
       }
     });
 
-    // Input handlers
+    // Input handlers with strict bot credentials guard
     searchInput.addEventListener('input', (e) => {
-      state.query = e.target.value;
+      const val = e.target.value || '';
+      if (val.includes('@') || val.includes('Музейны_каталог') || val.includes('Чаховіч')) {
+        e.target.value = '';
+        state.query = '';
+        render();
+        return;
+      }
+      state.query = val;
       render();
     });
 
@@ -3246,60 +3277,7 @@ LAST|P973|"${item.detailUrl}"`;
   const STORAGE_WIKI_PROXY = 'wikimedia_cors_proxy';
 
   // Seed with known uploaded items from Wikimedia Commons (dkmf.by catalog)
-  const SEED_COMMONS_DATA = {
-    "fotazdymak-18-1": {
-      "fileTitle": "File:Артысты К. Быліч, У. Дзядзюшка, Б. Бусел. 1920.jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:%D0%90%D1%80%D1%82%D1%8B%D1%81%D1%82%D1%8B_%D0%9A._%D0%91%D1%8B%D0%BB%D1%96%D1%87,_%D0%A3._%D0%94%D0%B7%D1%8F%D0%B4%D0%B7%D1%8E%D1%88%D0%BA%D0%B0,_%D0%91._%D0%91%D1%83%D1%81%D0%B5%D0%BB._1920.jpg"
-    },
-    "null-1-28": {
-      "fileTitle": "File:Дырэктар БДТ-2 Янка Ліманоўскі.jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:%D0%94%D1%8B%D1%80%D1%8D%D0%BA%D1%82%D0%B0%D1%80_%D0%91%D0%94%D0%A2-2_%D0%AF%D0%BD%D0%BA%D0%B0_%D0%9B%D1%96%D0%BC%D0%B0%D0%BD%D0%BE%D1%9E%D1%81%D0%BA%D1%96.jpg"
-    },
-    "mugir": {
-      "fileTitle": "File:Мугір. 1889. Уздзенскі раённы гісторыка-краязнаўчы музей.jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:%D0%9C%D1%83%D0%B3%D1%96%D1%80._1889._%D0%A3%D0%B7%D0%B4%D0%B7%D0%B5%D0%BD%D1%81%D0%BA%D1%96_%D1%80%D0%B0%D1%91%D0%BD%D0%BD%D1%8B_%D0%B3%D1%96%D1%81%D1%82%D0%BE%D1%80%D1%8B%D0%BA%D0%B0-%D0%BA%D1%80%D0%B0%D1%8F%D0%B7%D0%BD%D0%B0%D1%9E%D1%87%D1%8B_%D0%BC%D1%83%D0%B7%D0%B5%D0%B9.jpg"
-    },
-    "mugr": {
-      "fileTitle": "File:Выява мячэці з купаламі і двума мінарэтамі ў атачэнні дрэў. 1928. Гродзенскі дзяржаўны музей гісторыі рэлігіі.jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:%D0%92%D1%8B%D1%8F%D0%B2%D0%B0_%D0%BC%D1%8F%D1%87%D1%8D%D1%86%D1%96_%D0%B7_%D0%BA%D1%83%D0%BF%D0%B0%D0%BB%D0%B0%D0%BC%D1%96_%D1%96_%D0%B4%D0%B2%D1%83%D0%BC%D0%B0_%D0%BC%D1%96%D0%BD%D0%B0%D1%80%D1%8D%D1%82%D0%B0%D0%BC%D1%96_%D1%9E_%D0%B0%D1%82%D0%B0%D1%87%D1%8D%D0%BD%D0%BD%D1%96_%D0%B4%D1%80%D1%8D%D1%9E._1928._%D0%93%D1%80%D0%BE%D0%B4%D0%B7%D0%B5%D0%BD%D1%81%D0%BA%D1%96_%D0%B4%D0%B7%D1%8F%D1%80%D0%B6%D0%B0%D1%9E%D0%BD%D1%8B_%D0%BC%D1%83%D0%B7%D0%B5%D0%B9_%D0%B3%D1%96%D1%81%D1%82%D0%BE%D1%80%D1%8B%D1%96_%D1%80%D1%8D%D0%BB%D1%96%D0%B3%D1%96%D1%96.jpg"
-    },
-    "mugr-7": {
-      "fileTitle": "File:Мугір. Іўе, другая палова XIX стагоддзя. Гродзенскі дзяржаўны музей гісторыі рэлігіі.jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:%D0%9C%D1%83%D0%B3%D1%96%D1%80._%D0%86%D1%9E%D0%B5,_%D0%B4%D1%80%D1%83%D0%B3%D0%B0%D1%8F_%D0%BF%D0%B0%D0%BB%D0%BE%D0%B2%D0%B0_XIX_%D1%81%D1%82%D0%B0%D0%B3%D0%BE%D0%B4%D0%B4%D0%B7%D1%8F._%D0%93%D1%80%D0%BE%D0%B4%D0%B7%D0%B5%D0%BD%D1%81%D0%BA%D1%96_%D0%B4%D0%B7%D1%8F%D1%80%D0%B6%D0%B0%D1%9E%D0%BD%D1%8B_%D0%BC%D1%83%D0%B7%D0%B5%D0%B9_%D0%B3%D1%96%D1%81%D1%82%D0%BE%D1%80%D1%8B%D1%96_%D1%80%D1%8D%D0%BB%D1%96%D0%B3%D1%96%D1%96.jpg"
-    },
-    "abraz-7-1": {
-      "fileTitle": "File:Тадэвуш Марыя Раствароўскі. Абраз «Маці Божая Беззаганная». 1904.jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:%D0%A2%D0%B0%D0%B4%D1%8D%D0%B2%D1%83%D1%88_%D0%9C%D0%B0%D1%80%D1%8B%D1%8F_%D0%A0%D0%B0%D1%81%D1%82%D0%B2%D0%B0%D1%80%D0%BE%D1%9E%D1%81%D0%BA%D1%96._%D0%90%D0%B1%D1%80%D0%B0%D0%B7_%C2%AB%D0%9C%D0%B0%D1%86%D1%96_%D0%91%D0%BE%D0%B6%D0%B0%D1%8F_%D0%91%D0%B5%D0%B7%D0%B7%D0%B0%D0%B3%D0%B0%D0%BD%D0%BD%D0%B0%D1%8F%C2%BB._1904.jpg"
-    },
-    "taras-nina-sredi-uchenic-novogrudskoji-belorusskoji-gimnazii": {
-      "fileTitle": "File:Тарас Ніна сярод навучэнак Навагрудскай беларускай гімназіі. 1931-1932.jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:%D0%A2%D0%B0%D1%80%D0%B0%D1%81_%D0%9D%D1%96%D0%BD%D0%B0_%D1%81%D1%8F%D1%80%D0%BE%D0%B4_%D0%BD%D0%B0%D0%B2%D1%83%D1%87%D1%8D%D0%BD%D0%B0%D0%BA_%D0%9D%D0%B0%D0%B2%D0%B0%D0%B3%D1%80%D1%83%D0%B4%D1%81%D0%BA%D0%B0%D0%B9_%D0%B1%D0%B5%D0%BB%D0%B0%D1%80%D1%83%D1%81%D0%BA%D0%B0%D0%B9_%D0%B3%D1%96%D0%BC%D0%BD%D0%B0%D0%B7%D1%96%D1%96._1931-1932.jpg"
-    },
-    "fatagrafja-kaval-vasl-darozhni-sjargeji-astapenka-zmtrok-tabn-jul": {
-      "fileTitle": "File:Васіль Каваль, Сяргей Дарожны, Змітрок Астапенка, Юлі Таўбін. 1930-1935.jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:%D0%92%D0%B0%D1%81%D1%96%D0%BB%D1%8C_%D0%9A%D0%B0%D0%B2%D0%B0%D0%BB%D1%8C,_%D0%A1%D1%8F%D1%80%D0%B3%D0%B5%D0%B9_%D0%94%D0%B0%D1%80%D0%BE%D0%B6%D0%BD%D1%8B,_%D0%97%D0%BC%D1%96%D1%82%D1%80%D0%BE%D0%BA_%D0%90%D1%81%D1%82%D0%B0%D0%BF%D0%B5%D0%BD%D0%BA%D0%B0,_%D0%AE%D0%BB%D1%96_%D0%A2%D0%B0%D1%9E%D0%B1%D1%96%D0%BD._1930-1935.jpg"
-    },
-    "knga-spadchina-2": {
-      "fileTitle": "File:Янка Купала. Спадчына. 1922 (01).jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:%D0%AF%D0%BD%D0%BA%D0%B0_%D0%9A%D1%83%D0%BF%D0%B0%D0%BB%D0%B0._%D0%A1%D0%BF%D0%B0%D0%B4%D1%87%D1%8B%D0%BD%D0%B0._1922_(01).jpg"
-    },
-    "knga-advechnaja-pesnja-11": {
-      "fileTitle": "File:Янка Купала. Адвечная песня. 1910.jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:%D0%AF%D0%BD%D0%BA%D0%B0_%D0%9A%D1%83%D0%BF%D0%B0%D0%BB%D0%B0._%D0%90%D0%B4%D0%B2%D0%B5%D1%87%D0%BD%D0%B0%D1%8F_%D0%BF%D0%B5%D1%81%D0%BD%D1%8F._1910.jpg"
-    },
-    "knga-zhalejika-21": {
-      "fileTitle": "File:Жалейка. Вокладка. 1908.jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:%D0%96%D0%B0%D0%BB%D0%B5%D0%B9%D0%BA%D0%B0._%D0%92%D0%BE%D0%BA%D0%BB%D0%B0%D0%B4%D0%BA%D0%B0._1908.jpg"
-    },
-    "fatagrafja-shushukevch-stansla--gajillevch--galja": {
-      "fileTitle": "File:Станіслаў Шушкевіч і Галя Гайлілевіч (?). 1932.jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:%D0%A1%D1%82%D0%B0%D0%BD%D1%96%D1%81%D0%BB%D0%B0%D1%9E_%D0%A8%D1%83%D1%88%D0%BA%D0%B5%D0%B2%D1%96%D1%87_%D1%96_%D0%93%D0%B0%D0%BB%D1%8F_%D0%93%D0%B0%D0%B9%D0%BB%D1%96%D0%BB%D0%B5%D0%B2%D1%96%D1%87_(%3F)._1932.jpg"
-    },
-    "null-1-2-6": {
-      "fileTitle": "File:Паштоўка 1914 г. з партрэтамі манархаў Антанты. Музей гісторыі Клеччыны.jpg",
-      "commonsUrl": "https://commons.wikimedia.org/wiki/File:Паштоўка_1914_г._з_партрэтамі_манархаў_Антанты._Музей_гісторыі_Клеччыны.jpg"
-    }
-  };
+  const SEED_COMMONS_DATA = {};
 
   // In-memory state
   let uploadedToCommonsMap = {};
@@ -3326,6 +3304,17 @@ LAST|P973|"${item.detailUrl}"`;
   /**
    * Helper: save uploaded map to localStorage
    */
+  window.clearUploadedCommonsMap = function() {
+    if (!confirm('Вы сапраўды хочаце скінуць усе пазнакі "На Вікісховішчы"?')) return;
+    uploadedToCommonsMap = {};
+    window.uploadedToCommonsMap = {};
+    try {
+      localStorage.removeItem(STORAGE_COMMONS_MAP);
+    } catch(e) {}
+    if (typeof window.render === 'function') window.render();
+    if (typeof window.showToast === 'function') window.showToast('Усе пазнакі Вікісховішча ачышчаны!', '🧹');
+  };
+
   window.saveUploadedToCommonsMap = function(map) {
     if (map) uploadedToCommonsMap = map;
     window.uploadedToCommonsMap = uploadedToCommonsMap;
@@ -3421,6 +3410,8 @@ LAST|P973|"${item.detailUrl}"`;
 
           slugs.forEach(slug => {
             const key = slug.toLowerCase();
+            // NEVER match broken generic slugs starting with null-
+            if (key.startsWith('null') || key.length < 5) return;
             if (!uploadedToCommonsMap[key]) newlyFound++;
             uploadedToCommonsMap[key] = fileInfo;
           });
@@ -3482,6 +3473,7 @@ LAST|P973|"${item.detailUrl}"`;
 
               slugs.forEach(slug => {
                 const key = slug.toLowerCase();
+                if (key.startsWith('null') || key.length < 5) return;
                 if (!uploadedToCommonsMap[key]) newlyFound++;
                 uploadedToCommonsMap[key] = fileInfo;
               });
@@ -3942,19 +3934,54 @@ LAST|P973|"${item.detailUrl}"`;
     }
   };
 
-  // Auto-sync with Commons on initial script execution
+  // Initialize Wikimedia badge on load (NO auto-sync: sync only runs on explicit user click!)
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       window.updateWikimediaStatusBadge();
-      window.syncCommonsUploads(false);
     });
   } else {
     window.updateWikimediaStatusBadge();
-    window.syncCommonsUploads(false);
   }
 
 })();
 
+
+    // =====================================================
+    // STARTUP: Purge false-positive Commons uploads from localStorage
+    // =====================================================
+    (function cleanFalsePositiveCommonsUploads() {
+      try {
+        const raw = localStorage.getItem('dkmf_uploaded_commons_map');
+        if (!raw) return;
+        const map = JSON.parse(raw);
+        let changed = false;
+        // Purge generic slugs or seed items that cause false positives
+        for (const k in map) {
+          const lk = k.toLowerCase();
+          if (
+            lk.startsWith('null') ||
+            lk.startsWith('fotazdymak') ||
+            lk === 'mugir' || lk === 'mugr' || lk === 'mugr-7' ||
+            lk === 'abraz-7-1' || lk.startsWith('knga-') ||
+            lk.startsWith('fatagrafja-') || lk.startsWith('taras-nina')
+          ) {
+            delete map[k];
+            changed = true;
+          }
+        }
+        if (changed) {
+          localStorage.setItem('dkmf_uploaded_commons_map', JSON.stringify(map));
+          if (typeof window.uploadedToCommonsMap !== 'undefined') {
+            for (const k in window.uploadedToCommonsMap) {
+              if (!map[k]) delete window.uploadedToCommonsMap[k];
+            }
+          }
+          console.log('[commons-map] Cleaned false-positive pre-seeded uploads');
+        }
+      } catch (e) {
+        console.warn('cleanFalsePositiveCommonsUploads error:', e);
+      }
+    })();
 
     // =====================================================
     // STARTUP: Auto-migrate old AI cache (fix merged words)
@@ -4014,9 +4041,6 @@ LAST|P973|"${item.detailUrl}"`;
           window.DATA = fullData;
           initFilters(true);
           render(true);
-          if (typeof window.syncCommonsUploads === 'function') {
-            window.syncCommonsUploads(false);
-          }
           console.log('Successfully loaded full catalog:', DATA.length);
         }
       } catch (e) {
